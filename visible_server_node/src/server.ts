@@ -1,0 +1,417 @@
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
+import fs from "node:fs";
+import path from "node:path";
+import { URL, fileURLToPath } from "node:url";
+
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import {
+  CallToolRequestSchema,
+  ListResourceTemplatesRequestSchema,
+  ListResourcesRequestSchema,
+  ListToolsRequestSchema,
+  ReadResourceRequestSchema,
+  type CallToolRequest,
+  type ListResourceTemplatesRequest,
+  type ListResourcesRequest,
+  type ListToolsRequest,
+  type ReadResourceRequest,
+  type Resource,
+  type ResourceTemplate,
+  type Tool,
+} from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
+
+type VisibleWidget = {
+  id: string;
+  title: string;
+  templateUri: string;
+  invoking: string;
+  invoked: string;
+  html: string;
+  responseText: string;
+};
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT_DIR = path.resolve(__dirname, "..", "..");
+const ASSETS_DIR = path.resolve(ROOT_DIR, "assets");
+
+function readWidgetHtml(componentName: string): string {
+  if (!fs.existsSync(ASSETS_DIR)) {
+    throw new Error(
+      `Widget assets not found. Expected directory ${ASSETS_DIR}. Run "pnpm run build" before starting the server.`
+    );
+  }
+
+  const directPath = path.join(ASSETS_DIR, `${componentName}.html`);
+  let htmlContents: string | null = null;
+
+  if (fs.existsSync(directPath)) {
+    htmlContents = fs.readFileSync(directPath, "utf8");
+  } else {
+    const candidates = fs
+      .readdirSync(ASSETS_DIR)
+      .filter(
+        (file) => file.startsWith(`${componentName}-`) && file.endsWith(".html")
+      )
+      .sort();
+    const fallback = candidates[candidates.length - 1];
+    if (fallback) {
+      htmlContents = fs.readFileSync(path.join(ASSETS_DIR, fallback), "utf8");
+    }
+  }
+
+  if (!htmlContents) {
+    throw new Error(
+      `Widget HTML for "${componentName}" not found in ${ASSETS_DIR}. Run "pnpm run build" to generate the assets.`
+    );
+  }
+
+  return htmlContents;
+}
+
+function widgetDescriptorMeta(widget: VisibleWidget) {
+  return {
+    "openai/outputTemplate": widget.templateUri,
+    "openai/toolInvocation/invoking": widget.invoking,
+    "openai/toolInvocation/invoked": widget.invoked,
+    "openai/widgetAccessible": true,
+    "openai/resultCanProduceWidget": true,
+  } as const;
+}
+
+function widgetInvocationMeta(widget: VisibleWidget) {
+  return {
+    "openai/toolInvocation/invoking": widget.invoking,
+    "openai/toolInvocation/invoked": widget.invoked,
+  } as const;
+}
+
+const widgets: VisibleWidget[] = [
+  {
+    id: "visible-plans",
+    title: "Show Visible Plans",
+    templateUri: "ui://widget/visible-plans.html",
+    invoking: "Loading Visible plans",
+    invoked: "Displayed Visible plans",
+    html: readWidgetHtml("visible-plans"),
+    responseText: "Displayed Visible mobile plans in a carousel!",
+  },
+  {
+    id: "visible-devices",
+    title: "Show Visible Devices",
+    templateUri: "ui://widget/visible-devices.html",
+    invoking: "Loading Visible devices",
+    invoked: "Displayed Visible devices",
+    html: readWidgetHtml("visible-devices"),
+    responseText: "Displayed Visible devices in a carousel!",
+  },
+];
+
+const widgetsById = new Map<string, VisibleWidget>();
+const widgetsByUri = new Map<string, VisibleWidget>();
+
+widgets.forEach((widget) => {
+  widgetsById.set(widget.id, widget);
+  widgetsByUri.set(widget.templateUri, widget);
+});
+
+const toolInputSchema = {
+  type: "object",
+  properties: {
+    category: {
+      type: "string",
+      description: "Category of items to display (plans or devices).",
+    },
+  },
+  required: ["category"],
+  additionalProperties: false,
+} as const;
+
+const toolInputParser = z.object({
+  category: z.string(),
+});
+
+const tools: Tool[] = widgets.map((widget) => ({
+  name: widget.id,
+  description: widget.title,
+  inputSchema: toolInputSchema,
+  title: widget.title,
+  _meta: widgetDescriptorMeta(widget),
+  // To disable the approval prompt for the widgets
+  annotations: {
+    destructiveHint: false,
+    openWorldHint: false,
+    readOnlyHint: true,
+  },
+}));
+
+const resources: Resource[] = widgets.map((widget) => ({
+  uri: widget.templateUri,
+  name: widget.title,
+  description: `${widget.title} widget markup`,
+  mimeType: "text/html+skybridge",
+  _meta: widgetDescriptorMeta(widget),
+}));
+
+const resourceTemplates: ResourceTemplate[] = widgets.map((widget) => ({
+  uriTemplate: widget.templateUri,
+  name: widget.title,
+  description: `${widget.title} widget markup`,
+  mimeType: "text/html+skybridge",
+  _meta: widgetDescriptorMeta(widget),
+}));
+
+function createVisibleServer(): Server {
+  const server = new Server(
+    {
+      name: "visible-node",
+      version: "0.1.0",
+    },
+    {
+      capabilities: {
+        resources: {},
+        tools: {},
+      },
+    }
+  );
+
+  server.setRequestHandler(
+    ListResourcesRequestSchema,
+    async (_request: ListResourcesRequest) => ({
+      resources,
+    })
+  );
+
+  server.setRequestHandler(
+    ReadResourceRequestSchema,
+    async (request: ReadResourceRequest) => {
+      const widget = widgetsByUri.get(request.params.uri);
+
+      if (!widget) {
+        throw new Error(`Unknown resource: ${request.params.uri}`);
+      }
+
+      return {
+        contents: [
+          {
+            uri: widget.templateUri,
+            mimeType: "text/html+skybridge",
+            text: widget.html,
+            _meta: widgetDescriptorMeta(widget),
+          },
+        ],
+      };
+    }
+  );
+
+  server.setRequestHandler(
+    ListResourceTemplatesRequestSchema,
+    async (_request: ListResourceTemplatesRequest) => ({
+      resourceTemplates,
+    })
+  );
+
+  server.setRequestHandler(
+    ListToolsRequestSchema,
+    async (_request: ListToolsRequest) => ({
+      tools,
+    })
+  );
+
+  server.setRequestHandler(
+    CallToolRequestSchema,
+    async (request: CallToolRequest) => {
+      const widget = widgetsById.get(request.params.name);
+
+      if (!widget) {
+        throw new Error(`Unknown tool: ${request.params.name}`);
+      }
+
+      const args = toolInputParser.parse(request.params.arguments ?? {});
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: widget.responseText,
+          },
+        ],
+        structuredContent: {
+          category: args.category,
+        },
+        _meta: widgetInvocationMeta(widget),
+      };
+    }
+  );
+
+  return server;
+}
+
+type SessionRecord = {
+  server: Server;
+  transport: SSEServerTransport;
+};
+
+const sessions = new Map<string, SessionRecord>();
+
+const ssePath = "/mcp";
+const postPath = "/mcp/messages";
+
+async function handleSseRequest(res: ServerResponse) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  const server = createVisibleServer();
+  const transport = new SSEServerTransport(postPath, res);
+  const sessionId = transport.sessionId;
+
+  sessions.set(sessionId, { server, transport });
+
+  transport.onclose = async () => {
+    sessions.delete(sessionId);
+    await server.close();
+  };
+
+  transport.onerror = (error) => {
+    console.error("SSE transport error", error);
+  };
+
+  try {
+    await server.connect(transport);
+  } catch (error) {
+    sessions.delete(sessionId);
+    console.error("Failed to start SSE session", error);
+    if (!res.headersSent) {
+      res.writeHead(500).end("Failed to establish SSE connection");
+    }
+  }
+}
+
+async function handlePostMessage(
+  req: IncomingMessage,
+  res: ServerResponse,
+  url: URL
+) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "content-type");
+  const sessionId = url.searchParams.get("sessionId");
+
+  if (!sessionId) {
+    res.writeHead(400).end("Missing sessionId query parameter");
+    return;
+  }
+
+  const session = sessions.get(sessionId);
+
+  if (!session) {
+    res.writeHead(404).end("Unknown session");
+    return;
+  }
+
+  try {
+    await session.transport.handlePostMessage(req, res);
+  } catch (error) {
+    console.error("Failed to process message", error);
+    if (!res.headersSent) {
+      res.writeHead(500).end("Failed to process message");
+    }
+  }
+}
+
+const portEnv = Number(process.env.PORT ?? 8001);
+const port = Number.isFinite(portEnv) ? portEnv : 8001;
+
+const httpServer = createServer(
+  async (req: IncomingMessage, res: ServerResponse) => {
+    if (!req.url) {
+      res.writeHead(400).end("Missing URL");
+      return;
+    }
+
+    const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
+
+    if (
+      req.method === "OPTIONS" &&
+      (url.pathname === ssePath || url.pathname === postPath)
+    ) {
+      res.writeHead(204, {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "content-type",
+      });
+      res.end();
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === ssePath) {
+      await handleSseRequest(res);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === postPath) {
+      await handlePostMessage(req, res, url);
+      return;
+    }
+
+    // Health check endpoint
+    if (req.method === "GET" && url.pathname === "/health") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "ok", service: "visible-mcp-server" }));
+      return;
+    }
+
+    // Serve static assets from /assets directory
+    if (req.method === "GET" && url.pathname.startsWith("/assets/")) {
+      const filePath = path.join(ROOT_DIR, url.pathname);
+
+      // Security check: ensure the path is within ASSETS_DIR
+      const normalizedPath = path.normalize(filePath);
+      if (!normalizedPath.startsWith(ASSETS_DIR)) {
+        res.writeHead(403).end("Forbidden");
+        return;
+      }
+
+      if (!fs.existsSync(normalizedPath)) {
+        res.writeHead(404).end("Not Found");
+        return;
+      }
+
+      // Determine content type
+      const ext = path.extname(normalizedPath).toLowerCase();
+      const contentTypes: Record<string, string> = {
+        ".html": "text/html",
+        ".js": "application/javascript",
+        ".css": "text/css",
+        ".json": "application/json",
+      };
+      const contentType = contentTypes[ext] || "application/octet-stream";
+
+      res.writeHead(200, {
+        "Content-Type": contentType,
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "public, max-age=3600",
+      });
+
+      fs.createReadStream(normalizedPath).pipe(res);
+      return;
+    }
+
+    res.writeHead(404).end("Not Found");
+  }
+);
+
+httpServer.on("clientError", (err: Error, socket) => {
+  console.error("HTTP client error", err);
+  socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
+});
+
+httpServer.listen(port, () => {
+  console.log(`Visible MCP server listening on http://localhost:${port}`);
+  console.log(`  SSE stream: GET http://localhost:${port}${ssePath}`);
+  console.log(
+    `  Message post endpoint: POST http://localhost:${port}${postPath}?sessionId=...`
+  );
+});
