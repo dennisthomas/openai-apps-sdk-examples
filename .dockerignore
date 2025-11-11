@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+newproject/
+venv/
+env/
+*.egg-info/
+
+# Build outputs
+dist/
+build/
+*.local
+
+# Allow all config files needed for build
+!tsconfig*.json
+!vite*.*
+!tailwind.config.ts
+!build-all.mts
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+LICENSE
+
+# Testing
+coverage/
+.nyc_output/
+*.test.ts
+*.spec.ts
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Development files - only exclude dev script
+dev-all.mts
+
+# Python servers (only deploying Node version)
+solar-system_server_python/
+pizzaz_server_python/
+# Pre-commit hooks
+.pre-commit-config.yaml

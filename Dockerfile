@@ -1,0 +1,68 @@
+# Multi-stage Dockerfile for Pizzaz MCP Server on Google Cloud Run
+
+# Stage 1: Build the UI components
+FROM node:18-alpine AS builder
+
+# Install pnpm
+RUN npm install -g pnpm@10.13.1
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY pizzaz_server_node/package.json ./pizzaz_server_node/
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy all config and source files needed for build
+COPY tsconfig*.json vite*.* tailwind.config.ts ./
+COPY build-all.mts ./
+COPY src ./src
+COPY pizzaz_server_node ./pizzaz_server_node
+
+# Build the widget assets with production BASE_URL
+# The BASE_URL should be set to your Cloud Run service URL
+ARG BASE_URL=https://your-service.run.app
+ENV BASE_URL=${BASE_URL}
+RUN pnpm run build
+
+# Stage 2: Production runtime
+FROM node:18-alpine
+
+# Install pnpm
+RUN npm install -g pnpm@10.13.1
+
+WORKDIR /app
+
+# Copy package files for production dependencies
+COPY pizzaz_server_node/package.json ./pizzaz_server_node/
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Install only production dependencies
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy built assets from builder stage
+COPY --from=builder /app/assets ./assets
+
+# Copy server source
+COPY pizzaz_server_node/src ./pizzaz_server_node/src
+COPY pizzaz_server_node/tsconfig.json ./pizzaz_server_node/
+
+# Install tsx globally for running TypeScript (use npm for global installs)
+RUN npm install -g tsx
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=8080
+
+# Expose port (Cloud Run expects 8080 by default)
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Run the server
+WORKDIR /app/pizzaz_server_node
+CMD ["tsx", "src/server.ts"]

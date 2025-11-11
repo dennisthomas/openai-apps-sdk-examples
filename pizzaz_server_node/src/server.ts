@@ -383,6 +383,49 @@ const httpServer = createServer(
       return;
     }
 
+    // Health check endpoint
+    if (req.method === "GET" && url.pathname === "/health") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "ok", service: "pizzaz-mcp-server" }));
+      return;
+    }
+
+    // Serve static assets from /assets directory
+    if (req.method === "GET" && url.pathname.startsWith("/assets/")) {
+      const filePath = path.join(ROOT_DIR, url.pathname);
+
+      // Security check: ensure the path is within ASSETS_DIR
+      const normalizedPath = path.normalize(filePath);
+      if (!normalizedPath.startsWith(ASSETS_DIR)) {
+        res.writeHead(403).end("Forbidden");
+        return;
+      }
+
+      if (!fs.existsSync(normalizedPath)) {
+        res.writeHead(404).end("Not Found");
+        return;
+      }
+
+      // Determine content type
+      const ext = path.extname(normalizedPath).toLowerCase();
+      const contentTypes: Record<string, string> = {
+        ".html": "text/html",
+        ".js": "application/javascript",
+        ".css": "text/css",
+        ".json": "application/json",
+      };
+      const contentType = contentTypes[ext] || "application/octet-stream";
+
+      res.writeHead(200, {
+        "Content-Type": contentType,
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "public, max-age=3600",
+      });
+
+      fs.createReadStream(normalizedPath).pipe(res);
+      return;
+    }
+
     res.writeHead(404).end("Not Found");
   }
 );
