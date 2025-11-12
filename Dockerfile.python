@@ -1,0 +1,46 @@
+# Multi-stage Dockerfile for the Visible Python MCP server
+
+# Stage 1: build the shared widget bundle with pnpm
+FROM node:18-alpine AS builder
+
+RUN npm install -g pnpm@10.13.1
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY visible_server_node/package.json ./visible_server_node/
+
+RUN pnpm install --frozen-lockfile
+
+COPY tsconfig*.json vite*.* tailwind.config.ts ./
+COPY build-all.mts ./
+COPY src ./src
+COPY visible_server_node ./visible_server_node
+
+ARG BASE_URL=https://your-service.run.app
+ENV BASE_URL=${BASE_URL}
+
+RUN pnpm run build
+
+# Stage 2: Python runtime that serves the MCP API + assets
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY visible_server_python/requirements.txt ./visible_server_python/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r visible_server_python/requirements.txt
+
+COPY --from=builder /app/assets ./assets
+COPY visible_server_python ./visible_server_python
+
+ENV PORT=8081
+EXPOSE 8081
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD python -c "import os,urllib.request,sys; port=os.environ.get('PORT','8081'); sys.exit(0) if urllib.request.urlopen(f'http://127.0.0.1:{port}/health').status == 200 else sys.exit(1)"
+
+CMD ["sh", "-c", "uvicorn visible_server_python.main:app --host 0.0.0.0 --port ${PORT:-8081}"]
