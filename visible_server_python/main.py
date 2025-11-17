@@ -41,6 +41,8 @@ SRC_DIR = Path(__file__).resolve().parent.parent / "src"
 MIME_TYPE = "text/html+skybridge"
 FILTER_DEVICES_TOOL_NAME = "filter-devices"
 FILTER_DEVICES_WIDGET_ID = "filter-devices-widget"
+FILTER_PLANS_TOOL_NAME = "filter-plans"
+FILTER_PLANS_WIDGET_ID = "filter-plans-widget"
 FILTER_DEVICES_DESCRIPTION = """Use this when the user wants to find, search, view, sort, or compare mobile devices available from Visible, including smartphones, wearables, tablets, and accessories. The user can filter devices based on brand, price range, condition (new, used, refurbished), storage size, color, category, or availability, and refine results using natural language queries such as:
 “Show me used iPhones under $300”
 “Find refurbished Pixels in black”
@@ -80,6 +82,26 @@ ALLOWED_FILTER_KEYS = {
     "category",
     "in_stock",
 }
+ALLOWED_PLAN_FILTER_KEYS = {"term"}
+PLAN_TERM_ALIASES = {
+    "monthly": "monthly",
+    "month": "monthly",
+    "annual": "annual",
+    "annually": "annual",
+    "yearly": "annual",
+    "year": "annual",
+    "12": "annual",
+    "12-month": "annual",
+    "12 month": "annual",
+    "6": "6-month",
+    "6-month": "6-month",
+    "6 months": "6-month",
+    "6month": "6-month",
+    "6 mo": "6-month",
+    "half-year": "6-month",
+    "half year": "6-month",
+}
+PLAN_TERM_REGEX = re.compile(r"(\d+)\s*month", re.IGNORECASE)
 WIDGET_CSP_CONFIG = {
     "connect_domains": [
         "https://www.visible.com",
@@ -170,6 +192,35 @@ def _load_devices_dataset() -> List[Dict[str, Any]]:
     return json.loads(dataset_path.read_text(encoding="utf8"))
 
 
+def _plan_dataset_candidates() -> List[Path]:
+    candidates: List[Path] = []
+    env_path = os.environ.get("VISIBLE_PLANS_DATA_PATH")
+    if env_path:
+        candidates.append(Path(env_path))
+    candidates.extend(
+        [
+            SRC_DIR / "filter-plans" / "plans.json",
+            SRC_DIR / "visible-plans" / "plans.json",
+            ASSETS_DIR / "visible-plans-data.json",
+        ]
+    )
+    return candidates
+
+@lru_cache(maxsize=1)
+def _resolve_plans_dataset_path() -> Path:
+    for path in _plan_dataset_candidates():
+        if path.exists():
+            return path
+    locations = ", ".join(str(p) for p in _plan_dataset_candidates())
+    raise FileNotFoundError(f"Plans dataset not found. Checked: {locations}")
+
+
+@lru_cache(maxsize=1)
+def _load_plans_dataset() -> List[Dict[str, Any]]:
+    dataset_path = _resolve_plans_dataset_path()
+    return json.loads(dataset_path.read_text(encoding="utf8"))
+
+
 @lru_cache(maxsize=1)
 def _known_device_colors() -> Dict[str, str]:
     colors: Dict[str, str] = {}
@@ -229,6 +280,52 @@ def _coerce_filter_values(filters: Dict[str, Any]) -> Dict[str, Any]:
     return coerced
 
 
+def _normalize_plan_term(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    text = str(value).strip().lower()
+    if not text:
+        return None
+    if text in PLAN_TERM_ALIASES:
+        return PLAN_TERM_ALIASES[text]
+    match = PLAN_TERM_REGEX.search(text)
+    if match:
+        try:
+            months = int(match.group(1))
+            if months >= 11:
+                return "annual"
+            if 5 <= months <= 7:
+                return "6-month"
+            return "monthly"
+        except ValueError:
+            return None
+    if "annual" in text or "year" in text:
+        return "annual"
+    if "6" in text and "month" in text:
+        return "6-month"
+    if "month" in text:
+        return "monthly"
+    return None
+
+
+def _coerce_plan_filters(filters: Dict[str, Any]) -> Dict[str, Any]:
+    logging.debug(f"Coerce plan filters input: {filters}")
+    coerced: Dict[str, Any] = {}
+    if not filters:
+        return coerced
+    for key, raw_value in filters.items():
+        if key not in ALLOWED_PLAN_FILTER_KEYS:
+            logging.debug(f"Plan filters skipping unsupported key: {key}")
+            continue
+        if key == "term":
+            term = _normalize_plan_term(raw_value)
+            if term:
+                coerced["term"] = term
+                logging.debug(f"Plan filters accepted term: {term}")
+    logging.debug(f"Coerce plan filters output: {coerced}")
+    return coerced
+
+
 def _infer_filters_from_query(query: Optional[str]) -> Dict[str, Any]:
     logging.debug(f"Infer filters from query: {query}")
     if not query:
@@ -269,6 +366,14 @@ def _infer_filters_from_query(query: Optional[str]) -> Dict[str, Any]:
     }
     logging.debug(f"Inferred filters result: {cleaned}")
     return cleaned
+
+
+def _infer_plan_filters_from_query(query: Optional[str]) -> Dict[str, Any]:
+    logging.debug(f"Infer plan filters from query: {query}")
+    if not query:
+        return {}
+    term = _normalize_plan_term(query)
+    return {"term": term} if term else {}
 
 
 def _extract_price_value(device: Dict[str, Any]) -> Optional[float]:
@@ -368,6 +473,35 @@ def _apply_device_filters(filters: Dict[str, Any]) -> List[Dict[str, Any]]:
     return filtered_devices
 
 
+def _plan_term_from_plan(plan: Dict[str, Any]) -> str:
+    title = str(plan.get("title") or "").lower()
+    desc = str(plan.get("description") or "").lower()
+    combined = f"{title} {desc}".strip()
+    term = _normalize_plan_term(combined)
+    return term or "monthly"
+
+
+def _apply_plan_filters(filters: Dict[str, Any]) -> List[Dict[str, Any]]:
+    logging.debug(f"Merged plan filter payload: {filters}")
+    dataset = _load_plans_dataset()
+    if not filters:
+        logging.debug("Apply plan filters skipped: no filters provided")
+        return []
+
+    term_filter = filters.get("term")
+    filtered: List[Dict[str, Any]] = []
+    for plan in dataset:
+        plan_term = _plan_term_from_plan(plan)
+        if term_filter and plan_term != term_filter:
+            continue
+        filtered.append(plan)
+
+    filtered = filtered[:MAX_FILTER_RESULTS]
+    logging.debug(f"Filtered plan count: {len(filtered)}")
+    logging.debug(f"Filtered plans: {[p.get('title') for p in filtered]}")
+    return filtered
+
+
 async def filter_devices(
     brand: Optional[str] = None,
     max_price: Optional[float] = None,
@@ -442,6 +576,49 @@ async def filter_devices(
     )
 
 
+async def filter_plans(
+    term: Optional[str] = None,
+    query: Optional[str] = None,
+) -> types.CallToolResult:
+    base_filters = _coerce_plan_filters({"term": term})
+    inferred_filters = _infer_plan_filters_from_query(query)
+    merged_filters: Dict[str, Any] = dict(inferred_filters)
+    merged_filters.update(base_filters)
+    if query:
+        merged_filters["query"] = query
+
+    logging.debug(f"Plan merged filters: {merged_filters}")
+    filtered_plans = _apply_plan_filters(merged_filters)
+    logging.debug(f"Filtered plans count: {len(filtered_plans)}")
+
+    widget = WIDGETS_BY_ID[FILTER_PLANS_WIDGET_ID]
+    iframe_url = _widget_iframe_url(widget)
+
+    response_filters = dict(merged_filters)
+    response_filters["limit"] = MAX_FILTER_RESULTS
+
+    return types.CallToolResult(
+        content=[
+            types.TextContent(
+                type="text",
+                text=f"Found {len(filtered_plans)} matching plans.",
+            )
+        ],
+        structuredContent={
+            "filters": response_filters,
+            "count": len(filtered_plans),
+            "results": filtered_plans,
+        },
+        _meta=_widget_invocation_meta(widget),
+        ui={
+            "type": "iframe",
+            "url": iframe_url,
+            "title": widget.title,
+            "height": 500,
+        },
+    )
+
+
 @lru_cache(maxsize=None)
 def _load_widget_html(component_name: str) -> str:
     html_path = ASSETS_DIR / f"{component_name}.html"
@@ -487,7 +664,16 @@ FILTER_DEVICES_WIDGET = VisibleWidget(
     html=_load_widget_html("visible-filter-devices"),
     response_text="Here are your filtered devices!",
 )
-ALL_WIDGETS: List[VisibleWidget] = [*DISPLAY_WIDGETS, FILTER_DEVICES_WIDGET]
+FILTER_PLANS_WIDGET = VisibleWidget(
+    identifier=FILTER_PLANS_WIDGET_ID,
+    title="Filtered Plans",
+    template_uri="ui://widget/visible-filter-plans.html",
+    invoking="Filtering Visible plans...",
+    invoked="Displayed filtered plan results",
+    html=_load_widget_html("visible-filter-plans"),
+    response_text="Here are your filtered plans!",
+)
+ALL_WIDGETS: List[VisibleWidget] = [*DISPLAY_WIDGETS, FILTER_DEVICES_WIDGET, FILTER_PLANS_WIDGET]
 
 
 WIDGETS_BY_ID: Dict[str, VisibleWidget] = {
@@ -520,6 +706,13 @@ class FilterDevicesInput(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
+class FilterPlansInput(BaseModel):
+    term: Optional[str] = None
+    query: Optional[str] = None
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+
 mcp = FastMCP(
     name="visible-python",
     stateless_http=True,
@@ -546,6 +739,17 @@ FILTER_DEVICES_INPUT_SCHEMA: Dict[str, Any] = {
         "condition": {"type": "string"},
         "color": {"type": "string"},
         "size": {"type": "string"},
+        "query": {"type": "string"},
+    },
+    "additionalProperties": False,
+}
+FILTER_PLANS_INPUT_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "term": {
+            "type": "string",
+            "description": "Plan term to filter by (monthly, annual, 6-month).",
+        },
         "query": {"type": "string"},
     },
     "additionalProperties": False,
@@ -600,6 +804,20 @@ async def _list_tools() -> List[types.Tool]:
             description=FILTER_DEVICES_DESCRIPTION,
             inputSchema=deepcopy(FILTER_DEVICES_INPUT_SCHEMA),
             _meta=_widget_descriptor_meta(FILTER_DEVICES_WIDGET),
+            annotations={
+                "destructiveHint": False,
+                "openWorldHint": False,
+                "readOnlyHint": True,
+            },
+        )
+    )
+    tool_entries.append(
+        types.Tool(
+            name=FILTER_PLANS_TOOL_NAME,
+            title="Filter Visible Plans",
+            description="Use this when the user wants to filter Visible plans by term (monthly, annual, or 6-month).",
+            inputSchema=deepcopy(FILTER_PLANS_INPUT_SCHEMA),
+            _meta=_widget_descriptor_meta(FILTER_PLANS_WIDGET),
             annotations={
                 "destructiveHint": False,
                 "openWorldHint": False,
@@ -693,6 +911,29 @@ async def _call_tool_request(req: types.CallToolRequest) -> types.ServerResult:
             condition=payload.condition,
             color=payload.color,
             size=payload.size,
+            query=payload.query,
+        )
+        return types.ServerResult(result)
+    if req.params.name == FILTER_PLANS_TOOL_NAME:
+        arguments = req.params.arguments or {}
+        logging.debug(f"filter_plans raw request arguments: {arguments}")
+        try:
+            payload = FilterPlansInput.model_validate(arguments)
+        except ValidationError as exc:
+            return types.ServerResult(
+                types.CallToolResult(
+                    content=[
+                        types.TextContent(
+                            type="text",
+                            text=f"Input validation error: {exc.errors()}",
+                        )
+                    ],
+                    isError=True,
+                )
+            )
+
+        result = await filter_plans(
+            term=payload.term,
             query=payload.query,
         )
         return types.ServerResult(result)

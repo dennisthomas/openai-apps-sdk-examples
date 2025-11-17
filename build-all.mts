@@ -25,10 +25,12 @@ const targets: string[] = [
   "visible-plans",
   "visible-devices",
   "filter-devices",
+  "filter-plans",
 ];
 const builtNames: string[] = [];
 const outputNameOverrides: Record<string, string> = {
   "filter-devices": "visible-filter-devices",
+  "filter-plans": "visible-filter-plans",
 };
 
 function wrapEntryPlugin(
@@ -207,4 +209,13 @@ if (datasetSource) {
   console.log(`Copied device dataset to ${datasetTarget}`);
 } else {
   console.warn("Device dataset not found in src; skipping dataset copy.");
+}
+
+const plansDatasetSource = path.resolve("src/visible-plans/plans.json");
+if (fs.existsSync(plansDatasetSource)) {
+  const plansDatasetTarget = path.join(outDir, "visible-plans-data.json");
+  fs.copyFileSync(plansDatasetSource, plansDatasetTarget);
+  console.log(`Copied plans dataset to ${plansDatasetTarget}`);
+} else {
+  console.warn("Plans dataset not found in src; skipping plans dataset copy.");
 }
