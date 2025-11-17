@@ -24,8 +24,12 @@ const targets: string[] = [
   "pizzaz-shop",
   "visible-plans",
   "visible-devices",
+  "filter-devices",
 ];
 const builtNames: string[] = [];
+const outputNameOverrides: Record<string, string> = {
+  "filter-devices": "visible-filter-devices",
+};
 
 function wrapEntryPlugin(
   virtualId: string,
@@ -62,10 +66,11 @@ function wrapEntryPlugin(
 fs.rmSync(outDir, { recursive: true, force: true });
 
 for (const file of entries) {
-  const name = path.basename(path.dirname(file));
-  if (targets.length && !targets.includes(name)) {
+  const entryName = path.basename(path.dirname(file));
+  if (targets.length && !targets.includes(entryName)) {
     continue;
   }
+  const outputName = outputNameOverrides[entryName] ?? entryName;
 
   const entryAbs = path.resolve(file);
   const entryDir = path.dirname(entryAbs);
@@ -119,11 +124,11 @@ for (const file of entries) {
         input: virtualId,
         output: {
           format: "es",
-          entryFileNames: `${name}.js`,
+          entryFileNames: `${outputName}.js`,
           inlineDynamicImports: true,
           assetFileNames: (info) =>
             (info.name || "").endsWith(".css")
-              ? `${name}.css`
+              ? `${outputName}.css`
               : `[name]-[hash][extname]`,
         },
         preserveEntrySignatures: "allow-extension",
@@ -132,11 +137,11 @@ for (const file of entries) {
     },
   });
 
-  console.group(`Building ${name} (react)`);
+  console.group(`Building ${outputName} (react)`);
   await build(createConfig());
   console.groupEnd();
-  builtNames.push(name);
-  console.log(`Built ${name}`);
+  builtNames.push(outputName);
+  console.log(`Built ${outputName}`);
 }
 
 const outputs = fs
@@ -189,4 +194,17 @@ for (const name of builtNames) {
   fs.writeFileSync(hashedHtmlPath, html, { encoding: "utf8" });
   fs.writeFileSync(liveHtmlPath, html, { encoding: "utf8" });
   console.log(`${liveHtmlPath}`);
+}
+
+const datasetSources = [
+  path.resolve("src/filter-devices/filter_devices.json"),
+  path.resolve("src/visible-devices/devices.json"),
+];
+const datasetSource = datasetSources.find((candidate) => fs.existsSync(candidate));
+if (datasetSource) {
+  const datasetTarget = path.join(outDir, "visible-devices-data.json");
+  fs.copyFileSync(datasetSource, datasetTarget);
+  console.log(`Copied device dataset to ${datasetTarget}`);
+} else {
+  console.warn("Device dataset not found in src; skipping dataset copy.");
 }

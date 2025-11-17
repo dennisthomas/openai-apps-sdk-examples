@@ -1,12 +1,19 @@
 import React from "react";
 import { Smartphone, Watch } from "lucide-react";
 
-export default function DeviceCard({ device }) {
+export default function FilterDeviceCard({ device }) {
   if (!device) return null;
 
-  const price = device.sale_price?.value || device.price?.value || 0;
+  const priceValue =
+    device?.sale_price?.value ??
+    device?.price?.value ??
+    device?.sale_price ??
+    device?.price ??
+    0;
+  const price = Number(priceValue) || 0;
   const isWearable = device.product_category?.includes("Wearables");
-  const inStock = device.availability === "in_stock" && device.inventory_quantity > 0;
+  const inStock =
+    device.availability === "in_stock" && (device.inventory_quantity ?? 0) > 0;
 
   const [imgError, setImgError] = React.useState(false);
   const fallbackSvg = React.useMemo(() => {
@@ -24,6 +31,7 @@ export default function DeviceCard({ device }) {
             src={imageSrc}
             alt={device.title}
             className="w-full h-full object-contain p-4"
+            loading="lazy"
             onError={(e) => {
               if (!imgError) {
                 setImgError(true);
@@ -73,7 +81,7 @@ export default function DeviceCard({ device }) {
         <div className="mt-auto pt-4">
           <button
             type="button"
-            onClick={() => window.open(device.link, "_blank")}
+            onClick={() => window.open(device.link, '_blank')}
             className="cursor-pointer w-full inline-flex items-center justify-center gap-2 rounded-full bg-black text-white px-6 py-2.5 text-sm font-medium hover:bg-black/90 active:bg-black"
           >
             {isWearable ? <Watch className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}
