@@ -94,21 +94,21 @@ function widgetInvocationMeta(widget: VisibleWidget) {
 const widgets: VisibleWidget[] = [
   {
     id: "visible-plans",
-    title: "Show Visible Plans",
+    title: "Search Visible Mobile Plans",
     templateUri: "ui://widget/visible-plans.html",
-    invoking: "Loading Visible plans",
+    invoking: "Searching Visible plans",
     invoked: "Displayed Visible plans",
     html: readWidgetHtml("visible-plans"),
-    responseText: "Displayed Visible mobile plans in a carousel!",
+    responseText: "Found matching Visible mobile plans!",
   },
   {
     id: "visible-devices",
-    title: "Show Visible Devices",
+    title: "Search Visible Devices",
     templateUri: "ui://widget/visible-devices.html",
-    invoking: "Loading Visible devices",
-    invoked: "Displayed Visible devices",
+    invoking: "Searching devices catalog",
+    invoked: "Displayed matching devices",
     html: readWidgetHtml("visible-devices"),
-    responseText: "Displayed Visible devices in a carousel!",
+    responseText: "Found matching devices in the Visible catalog!",
   },
 ];
 
@@ -120,35 +120,316 @@ widgets.forEach((widget) => {
   widgetsByUri.set(widget.templateUri, widget);
 });
 
+const DEVICES_DATA_PATH = path.resolve(
+  ROOT_DIR,
+  "src",
+  "visible-devices",
+  "devices.json"
+);
+const PLANS_DATA_PATH = path.resolve(
+  ROOT_DIR,
+  "src",
+  "visible-plans",
+  "plans.json"
+);
+
+type PriceField = {
+  value?: number;
+  currency?: string;
+};
+
+type DeviceRecord = {
+  id: string;
+  title: string;
+  description?: string;
+  brand?: string;
+  product_category?: string;
+  availability?: string;
+  inventory_quantity?: number;
+  sale_price?: PriceField;
+  price?: PriceField;
+  [key: string]: unknown;
+};
+
+type PlanRecord = {
+  id: string;
+  title: string;
+  description?: string;
+  product_category?: string;
+  sale_price?: PriceField;
+  price?: PriceField;
+  [key: string]: unknown;
+};
+
+function loadJsonFile<T>(filePath: string): T[] {
+  try {
+    const raw = fs.readFileSync(filePath, "utf8");
+    return JSON.parse(raw) as T[];
+  } catch (error) {
+    console.error(`Failed to load JSON catalog ${filePath}`, error);
+    return [];
+  }
+}
+
+const devicesCatalog = loadJsonFile<DeviceRecord>(DEVICES_DATA_PATH);
+const plansCatalog = loadJsonFile<PlanRecord>(PLANS_DATA_PATH);
+
 const toolInputSchema = {
   type: "object",
   properties: {
     category: {
       type: "string",
+      enum: ["plans", "devices"],
       description: "Category of items to display (plans or devices).",
     },
+    query: {
+      type: "string",
+      description:
+        "Specific product model or type (e.g. 'iPhone', 'Galaxy', 'Pixel', 'Apple Watch'). Use this for product names, not just brand names.",
+    },
+    brand: {
+      type: "string",
+      description: "Filter devices by brand name only if user explicitly mentions just the brand (e.g. 'Samsung', 'Apple'). Do not use for specific products like 'iPhone' - use query instead.",
+    },
+    productCategory: {
+      type: "string",
+      description: "Filter by the device product_category field.",
+    },
+    minPrice: {
+      type: "number",
+      description: "Minimum device price in USD.",
+    },
+    maxPrice: {
+      type: "number",
+      description: "Maximum device price in USD.",
+    },
+    availability: {
+      type: "string",
+      enum: ["in_stock", "out_of_stock"],
+      description: "Filter by availability status.",
+    },
+    billingTerm: {
+      type: "string",
+      enum: ["monthly", "annual", "multi-month"],
+      description:
+        "Plan billing term to highlight (monthly, multi-month bundles, or annual).",
+    },
   },
-  required: ["category"],
   additionalProperties: false,
 } as const;
 
+// Update tool schema to accept search parameters
 const toolInputParser = z.object({
-  category: z.string(),
+  category: z.enum(["devices", "plans"]).optional(),
+  query: z.string().optional(),
+  brand: z.string().optional(),
+  productCategory: z.string().optional(),
+  minPrice: z.coerce.number().optional(),
+  maxPrice: z.coerce.number().optional(),
+  availability: z.enum(["in_stock", "out_of_stock"]).optional(),
+  billingTerm: z.enum(["monthly", "annual", "multi-month"]).optional(),
 });
 
-const tools: Tool[] = widgets.map((widget) => ({
-  name: widget.id,
-  description: widget.title,
-  inputSchema: toolInputSchema,
-  title: widget.title,
-  _meta: widgetDescriptorMeta(widget),
-  // To disable the approval prompt for the widgets
-  annotations: {
-    destructiveHint: false,
-    openWorldHint: false,
-    readOnlyHint: true,
-  },
-}));
+type ToolInput = z.infer<typeof toolInputParser>;
+
+function devicePrice(device: DeviceRecord): number | null {
+  return device.sale_price?.value ?? device.price?.value ?? null;
+}
+
+function planPrice(plan: PlanRecord): number | null {
+  return plan.sale_price?.value ?? plan.price?.value ?? null;
+}
+
+function matchesAvailability(device: DeviceRecord, desired?: string): boolean {
+  if (!desired) {
+    return true;
+  }
+
+  const inStock =
+    device.availability === "in_stock" &&
+    (device.inventory_quantity ?? 0) > 0;
+
+  return desired === "in_stock" ? inStock : !inStock;
+}
+
+type SearchableRecord = {
+  title?: string;
+  description?: string;
+  brand?: string;
+  product_category?: string;
+};
+
+function matchesQuery(record: SearchableRecord, query?: string): boolean {
+  if (!query) {
+    return true;
+  }
+
+  const queryLower = query.toLowerCase();
+  const title = (record.title ?? "").toLowerCase();
+  const description = (record.description ?? "").toLowerCase();
+  const brand = (record.brand ?? "").toLowerCase();
+  const productCategory = (record.product_category ?? "").toLowerCase();
+  
+  // Map specific product names to their categories to prevent cross-matching
+  // e.g., "iphone" should only match Mobile Phones, not Wearables (Apple Watch)
+  const productTypeMapping: Record<string, string[]> = {
+    "iphone": ["mobile phones"],
+    "ipad": ["mobile phones", "tablets"],
+    "galaxy": ["mobile phones"],
+    "pixel": ["mobile phones"],
+    "watch": ["wearables"],
+    "iwatch": ["wearables"],
+  };
+  
+  // Check if query contains a specific product type
+  for (const [productName, allowedCategories] of Object.entries(productTypeMapping)) {
+    if (queryLower.includes(productName)) {
+      // First check if product category matches
+      const categoryMatches = allowedCategories.some(cat => productCategory.includes(cat));
+      if (!categoryMatches) {
+        return false; // Wrong category, exclude immediately
+      }
+      // Then check if title matches
+      return title.includes(queryLower) || queryLower.split(/\s+/).every(word => title.includes(word));
+    }
+  }
+  
+  // For general queries, search across all fields
+  const haystack = [title, description, brand, productCategory]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  
+  // Split query into words for flexible matching
+  const queryWords = queryLower.split(/\s+/);
+  
+  // Match if ALL query words are found (more restrictive for multi-word queries)
+  // or if single word query matches
+  if (queryWords.length === 1) {
+    return haystack.includes(queryWords[0]);
+  }
+  
+  return queryWords.every(word => haystack.includes(word));
+}
+
+function filterDevices(devices: DeviceRecord[], filters: ToolInput) {
+  return devices.filter((device) => {
+    // Special handling: if brand is Apple but no explicit query, filter out wearables by default
+    // This prevents Apple Watch from showing when user asks for "iPhone"
+    if (filters.brand && filters.brand.toLowerCase() === "apple" && !filters.query) {
+      const productCategory = (device.product_category ?? "").toLowerCase();
+      // Default to phones for Apple brand queries (exclude wearables)
+      if (productCategory.includes("wearables")) {
+        return false;
+      }
+    }
+    
+    if (filters.brand) {
+      if ((device.brand ?? "").toLowerCase() !== filters.brand.toLowerCase()) {
+        return false;
+      }
+    }
+
+    if (
+      filters.productCategory &&
+      (device.product_category ?? "").toLowerCase() !==
+        filters.productCategory.toLowerCase()
+    ) {
+      return false;
+    }
+
+    if (!matchesAvailability(device, filters.availability)) {
+      return false;
+    }
+
+    if (!matchesQuery(device, filters.query)) {
+      return false;
+    }
+
+    const price = devicePrice(device);
+    if (
+      filters.minPrice !== undefined &&
+      (price === null || price < filters.minPrice)
+    ) {
+      return false;
+    }
+
+    if (
+      filters.maxPrice !== undefined &&
+      (price === null || price > filters.maxPrice)
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function planBillingTerm(plan: PlanRecord): "monthly" | "annual" | "multi-month" {
+  const title = plan.title?.toLowerCase() ?? "";
+  if (title.includes("annual")) {
+    return "annual";
+  }
+
+  if (title.includes("6m") || title.includes("6 m") || title.includes("6 ")) {
+    return "multi-month";
+  }
+
+  return "monthly";
+}
+
+function filterPlans(plans: PlanRecord[], filters: ToolInput) {
+  return plans.filter((plan) => {
+    if (!matchesQuery(plan, filters.query)) {
+      return false;
+    }
+
+    const price = planPrice(plan);
+    if (
+      filters.minPrice !== undefined &&
+      (price === null || price < filters.minPrice)
+    ) {
+      return false;
+    }
+
+    if (
+      filters.maxPrice !== undefined &&
+      (price === null || price > filters.maxPrice)
+    ) {
+      return false;
+    }
+
+    if (
+      filters.billingTerm &&
+      planBillingTerm(plan) !== filters.billingTerm
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+const tools: Tool[] = widgets.map((widget) => {
+  const isPlans = widget.id === "visible-plans";
+  const description = isPlans
+    ? "Search and filter Visible mobile plans by price range, billing term, or text query. Returns matching plans with pricing and features."
+    : "Search and filter Visible devices (phones, accessories) by brand, price range, availability, category, or text query. Returns matching devices with prices and details.";
+  
+  return {
+    name: widget.id,
+    description,
+    inputSchema: toolInputSchema,
+    title: widget.title,
+    _meta: widgetDescriptorMeta(widget),
+    // To disable the approval prompt for the widgets
+    annotations: {
+      destructiveHint: false,
+      openWorldHint: false,
+      readOnlyHint: true,
+    },
+  };
+});
 
 const resources: Resource[] = widgets.map((widget) => ({
   uri: widget.templateUri,
@@ -234,6 +515,61 @@ function createVisibleServer(): Server {
 
       const args = toolInputParser.parse(request.params.arguments ?? {});
 
+      // Debug logging
+      console.log("=== MCP Tool Called ===");
+      console.log("Tool:", request.params.name);
+      console.log("Arguments received:", JSON.stringify(args, null, 2));
+      console.log("Total devices in catalog:", devicesCatalog.length);
+      console.log("Total plans in catalog:", plansCatalog.length);
+
+      const resolvedCategory =
+        args.category ?? (widget.id === "visible-plans" ? "plans" : "devices");
+      const filteredDevices =
+        widget.id === "visible-devices"
+          ? filterDevices(devicesCatalog, args)
+          : null;
+      const filteredPlans =
+        widget.id === "visible-plans"
+          ? filterPlans(plansCatalog, args)
+          : null;
+      
+      // Log filtering results
+      if (filteredDevices) {
+        console.log("Filtered devices count:", filteredDevices.length);
+        if (filteredDevices.length > 0) {
+          console.log("Sample device:", JSON.stringify(filteredDevices[0], null, 2));
+        }
+      }
+      if (filteredPlans) {
+        console.log("Filtered plans count:", filteredPlans.length);
+      }
+      const appliedFilters = {
+        query: args.query ?? null,
+        brand: args.brand ?? null,
+        productCategory: args.productCategory ?? null,
+        minPrice: args.minPrice ?? null,
+        maxPrice: args.maxPrice ?? null,
+        availability: args.availability ?? null,
+        billingTerm: args.billingTerm ?? null,
+      };
+
+      const structuredContent: Record<string, unknown> = {
+        category: resolvedCategory,
+        filters: appliedFilters,
+      };
+
+      if (filteredDevices) {
+        structuredContent.items = filteredDevices;
+        structuredContent.resultCount = filteredDevices.length;
+        structuredContent.totalCount = devicesCatalog.length;
+      }
+
+      if (filteredPlans) {
+        structuredContent.items = filteredPlans;
+        structuredContent.resultCount = filteredPlans.length;
+        structuredContent.totalCount = plansCatalog.length;
+      }
+
       return {
         content: [
           {
@@ -241,9 +577,7 @@ function createVisibleServer(): Server {
             text: widget.responseText,
           },
         ],
-        structuredContent: {
-          category: args.category,
-        },
+        structuredContent,
         _meta: widgetInvocationMeta(widget),
       };
     }

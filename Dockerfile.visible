@@ -45,6 +45,10 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy built assets from builder stage
 COPY --from=builder /app/assets ./assets
 
+# Copy catalog JSON files (devices and plans data)
+COPY src/visible-devices/devices.json ./src/visible-devices/
+COPY src/visible-plans/plans.json ./src/visible-plans/
+
 # Copy server source
 COPY visible_server_node/src ./visible_server_node/src
 COPY visible_server_node/tsconfig.json ./visible_server_node/

@@ -2,11 +2,18 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import useEmblaCarousel from "embla-carousel-react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import devicesData from "./devices.json";
 import DeviceCard from "./DeviceCard";
+import { useWidgetProps } from "../use-widget-props";
+import devicesFallback from "./devices.json";
 
 function App() {
-  const devices = devicesData || [];
+  // Get filtered devices from server - don't use fallback to avoid showing unfiltered data
+  const widgetData = useWidgetProps();
+  const items = widgetData?.items || [];
+  const filters = widgetData?.filters || {};
+  const resultCount = widgetData?.resultCount;
+  const totalCount = widgetData?.totalCount;
+
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "center",
     loop: false,
@@ -14,8 +21,27 @@ function App() {
     slidesToScroll: "auto",
     dragFree: false,
   });
+
   const [canPrev, setCanPrev] = React.useState(false);
   const [canNext, setCanNext] = React.useState(false);
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log("Widget Data Received:", {
+      hasWidgetData: !!widgetData,
+      itemsCount: items?.length,
+      filters,
+      resultCount,
+      totalCount,
+      rawWidgetData: widgetData,
+    });
+  }, [widgetData, items, filters]);
+
+  React.useEffect(() => {
+    if (emblaApi) {
+      emblaApi.reInit();
+    }
+  }, [emblaApi, items.length]);
 
   React.useEffect(() => {
     if (!emblaApi) return;
@@ -34,13 +60,29 @@ function App() {
 
   return (
     <div className="antialiased relative w-full text-black py-5 bg-white">
-      <div className="overflow-hidden" ref={emblaRef}>
-        <div className="flex gap-4 max-sm:mx-5 items-stretch">
-          {devices.map((device) => (
-            <DeviceCard key={device.id} device={device} />
-          ))}
+      {/* Show filter summary if filters were applied */}
+      {(filters.query || filters.brand || filters.minPrice || filters.maxPrice || filters.productCategory) && (
+        <div className="px-5 pb-3 text-sm text-black/70">
+          Showing {resultCount || items.length} of {totalCount || items.length} devices
+          {filters.brand && ` • Brand: ${filters.brand}`}
+          {filters.maxPrice && ` • Under $${filters.maxPrice}`}
         </div>
-      </div>
+      )}
+
+      {items.length === 0 ? (
+        <div className="px-5 py-10 text-center text-sm text-black/60">
+          No devices found matching your criteria.
+        </div>
+      ) : (
+        <div className="overflow-hidden" ref={emblaRef}>
+          <div className="flex gap-4 max-sm:mx-5 items-stretch">
+            {items.map((device) => (
+              <DeviceCard key={device.id} device={device} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Edge gradients */}
       <div
         aria-hidden
@@ -76,6 +118,7 @@ function App() {
           }}
         />
       </div>
+
       {canPrev && (
         <button
           aria-label="Previous"
