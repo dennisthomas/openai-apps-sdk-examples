@@ -9,10 +9,19 @@ import plansFallback from "./plans.json";
 function App() {
   // Get filtered plans from server - don't use fallback to avoid showing unfiltered data
   const widgetData = useWidgetProps();
-  const items = widgetData?.items || [];
+  const allItems = widgetData?.items || [];
+  // Limit to 10 most relevant items
+  const items = allItems.slice(0, 10);
   const filters = widgetData?.filters || {};
   const resultCount = widgetData?.resultCount;
   const totalCount = widgetData?.totalCount;
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (widgetData) {
+      setIsLoading(false);
+    }
+  }, [widgetData]);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "center",
@@ -47,17 +56,19 @@ function App() {
   }, [emblaApi]);
 
   return (
-    <div className="antialiased relative w-full text-black py-5 bg-white">
-      {/* Show filter summary if filters were applied */}
-      {(filters.query || filters.minPrice || filters.maxPrice) && (
-        <div className="px-5 pb-3 text-sm text-black/70">
-          Showing {resultCount || items.length} of {totalCount || items.length} plans
-          {filters.maxPrice && ` • Under $${filters.maxPrice}`}
+    <div className="antialiased relative w-full py-5">
+      {isLoading ? (
+        <div className="px-5 py-10 text-center">
+          <div className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-300">
+            <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span className="text-sm font-medium">Loading...</span>
+          </div>
         </div>
-      )}
-
-      {items.length === 0 ? (
-        <div className="px-5 py-10 text-center text-sm text-black/60">
+      ) : items.length === 0 ? (
+        <div className="px-5 py-10 text-center text-sm text-gray-600 dark:text-gray-300">
           No plans found matching your criteria.
         </div>
       ) : (
