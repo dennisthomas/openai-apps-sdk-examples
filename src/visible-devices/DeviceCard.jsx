@@ -4,26 +4,36 @@ import { Smartphone, Watch } from "lucide-react";
 export default function DeviceCard({ device }) {
   if (!device) return null;
 
+  const normalizeImageLink = (link) => {
+    if (!link || typeof link !== "string") return null;
+    const trimmed = link.trim();
+    if (trimmed.startsWith("//")) return `https:${trimmed}`;
+    if (trimmed.startsWith("http://")) return trimmed.replace(/^http:\/\//i, "https://");
+    return trimmed;
+  };
+
   const price = device.sale_price?.value || device.price?.value || 0;
   const isWearable = device.product_category?.includes("Wearables");
   const inStock = device.availability === "in_stock" && device.inventory_quantity > 0;
-
   const [imgError, setImgError] = React.useState(false);
+  const imageSrc = normalizeImageLink(device.image_link);
   const fallbackSvg = React.useMemo(() => {
     const label = encodeURIComponent(device?.brand || "Device");
     return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300' fill='none'><rect width='300' height='300' rx='32' fill='%23f5f5f5'/><path d='M120 40h60c8.8 0 16 7.2 16 16v188c0 8.8-7.2 16-16 16h-60c-8.8 0-16-7.2-16-16V56c0-8.8 7.2-16 16-16z' stroke='%23000' stroke-opacity='0.08' stroke-width='8' fill='%23fff'/><circle cx='150' cy='250' r='10' fill='%23000' fill-opacity='0.08'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Inter, sans-serif' font-size='16' fill='%23707070'>${label}</text></svg>`;
   }, [device?.brand]);
 
-  const imageSrc = !imgError && device.image_link ? device.image_link : fallbackSvg;
+  const resolvedSrc = !imgError && imageSrc ? imageSrc : fallbackSvg;
 
   return (
     <div className="min-w-[260px] select-none max-w-[260px] w-[70vw] sm:w-[260px] self-stretch flex flex-col bg-white rounded-2xl shadow-[0px_2px_12px_rgba(0,0,0,0.08)] ring ring-black/5 overflow-hidden">
       <div className="w-full bg-gradient-to-br from-gray-50 to-gray-100 p-6 relative">
         <div className="aspect-square w-full rounded-lg overflow-hidden mb-4 bg-white flex items-center justify-center">
           <img
-            src={imageSrc}
+            src={resolvedSrc}
             alt={device.title}
             className="w-full h-full object-contain p-4"
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
             onError={(e) => {
               if (!imgError) {
                 setImgError(true);

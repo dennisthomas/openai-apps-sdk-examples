@@ -88,9 +88,12 @@ WIDGET_CSP_CONFIG = {
         "https://visible-mcp-server-python-*.a.run.app",
     ],
     "resource_domains": [
+        "https://visible.com",
         "https://*.visible.com",
         "https://visible.scene7.com",
         "https://*.scene7.com",
+        "https://*.oaiusercontent.com",
+        "https://*.oaistatic.com",
         "https://cdn.tailwindcss.com",
         "https://cdn.jsdelivr.net",
         "https://unpkg.com",
@@ -369,6 +372,8 @@ async def filter_devices(
     brand: Optional[str] = None,
     max_price: Optional[float] = None,
     condition: Optional[str] = None,
+    color: Optional[str] = None,
+    size: Optional[str] = None,
     query: Optional[str] = None,
 ) -> types.CallToolResult:
     base_filters = _coerce_filter_values(
@@ -376,6 +381,8 @@ async def filter_devices(
             "brand": brand,
             "max_price": max_price,
             "condition": condition,
+            "color": color,
+            "size": size,
         }
     )
     logging.debug(f"Raw args: {base_filters}")
@@ -506,6 +513,8 @@ class FilterDevicesInput(BaseModel):
     brand: Optional[str] = None
     max_price: Optional[float] = Field(default=None, alias="max_price")
     condition: Optional[str] = None
+    color: Optional[str] = None
+    size: Optional[str] = None
     query: Optional[str] = None
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
@@ -535,6 +544,8 @@ FILTER_DEVICES_INPUT_SCHEMA: Dict[str, Any] = {
         "brand": {"type": "string"},
         "max_price": {"type": "number"},
         "condition": {"type": "string"},
+        "color": {"type": "string"},
+        "size": {"type": "string"},
         "query": {"type": "string"},
     },
     "additionalProperties": False,
@@ -680,6 +691,8 @@ async def _call_tool_request(req: types.CallToolRequest) -> types.ServerResult:
             brand=payload.brand,
             max_price=payload.max_price,
             condition=payload.condition,
+            color=payload.color,
+            size=payload.size,
             query=payload.query,
         )
         return types.ServerResult(result)
