@@ -148,6 +148,9 @@ type DeviceRecord = {
   inventory_quantity?: number;
   sale_price?: PriceField;
   price?: PriceField;
+  color?: string;
+  size?: string;
+  condition?: string;
   [key: string]: unknown;
 };
 
@@ -185,7 +188,7 @@ const toolInputSchema = {
     query: {
       type: "string",
       description:
-        "Specific product model or type (e.g. 'iPhone', 'Galaxy', 'Pixel', 'Apple Watch'). Use this for product names, not just brand names.",
+        "Specific product model or type ONLY (e.g. 'iPhone', 'Galaxy', 'Pixel', 'Apple Watch'). Use this for product names, NOT for colors, storage sizes, or conditions - those have their own parameters.",
     },
     brand: {
       type: "string",
@@ -208,6 +211,18 @@ const toolInputSchema = {
       enum: ["in_stock", "out_of_stock"],
       description: "Filter by availability status.",
     },
+    color: {
+      type: "string",
+      description: "Filter by device color. Extract color words from user query (e.g. 'red', 'black', 'blue', 'white', 'pink', 'yellow'). ALWAYS use this parameter when user mentions a color, not the query field.",
+    },
+    size: {
+      type: "string",
+      description: "Filter by storage size. Extract storage capacity from user query (e.g. '128 GB', '256 GB', '512 GB'). ALWAYS use this parameter when user mentions storage, not the query field.",
+    },
+    condition: {
+      type: "string",
+      description: "Filter by device condition. Extract condition from user query (e.g. 'new', 'refurbished', 'used'). ALWAYS use this parameter when user mentions condition, not the query field.",
+    },
     billingTerm: {
       type: "string",
       enum: ["monthly", "annual", "multi-month"],
@@ -227,6 +242,9 @@ const toolInputParser = z.object({
   minPrice: z.coerce.number().optional(),
   maxPrice: z.coerce.number().optional(),
   availability: z.enum(["in_stock", "out_of_stock"]).optional(),
+  color: z.string().optional(),
+  size: z.string().optional(),
+  condition: z.string().optional(),
   billingTerm: z.enum(["monthly", "annual", "multi-month"]).optional(),
 });
 
@@ -344,6 +362,37 @@ function filterDevices(devices: DeviceRecord[], filters: ToolInput) {
 
     if (!matchesQuery(device, filters.query)) {
       return false;
+    }
+
+    if (filters.color) {
+      const deviceColor = (device.color ?? "").toLowerCase();
+      const filterColor = filters.color.toLowerCase();
+      if (!deviceColor.includes(filterColor)) {
+        return false;
+      }
+    }
+
+    if (filters.size) {
+      const deviceSize = (device.size ?? "").toLowerCase();
+      const filterSize = filters.size.toLowerCase();
+      // Match both "128 GB" and "128GB" formats
+      if (!deviceSize.includes(filterSize.replace(/\s+/g, '')) && !deviceSize.includes(filterSize)) {
+        return false;
+      }
+    }
+
+    if (filters.condition) {
+      const deviceCondition = (device.condition ?? "").toLowerCase();
+      let filterCondition = filters.condition.toLowerCase();
+      
+      // Map "refurbished" to "used" since they're the same in the catalog
+      if (filterCondition === "refurbished") {
+        filterCondition = "used";
+      }
+      
+      if (!deviceCondition.includes(filterCondition)) {
+        return false;
+      }
     }
 
     const price = devicePrice(device);
