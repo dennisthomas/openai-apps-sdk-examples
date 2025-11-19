@@ -213,15 +213,15 @@ const toolInputSchema = {
     },
     color: {
       type: "string",
-      description: "Filter by device color. Extract color words from user query (e.g. 'red', 'black', 'blue', 'white', 'pink', 'yellow'). ALWAYS use this parameter when user mentions a color, not the query field.",
+      description: "Filter by device color. Extract color words from user query (e.g. 'red', 'black', 'blue', 'white', 'pink', 'yellow'). Supports multiple colors separated by 'or', 'and', comma, or slash (e.g. 'blue or pink', 'red and black', 'white, blue'). ALWAYS use this parameter when user mentions a color, not the query field.",
     },
     size: {
       type: "string",
-      description: "Filter by storage size. Extract storage capacity from user query (e.g. '128 GB', '256 GB', '512 GB'). ALWAYS use this parameter when user mentions storage, not the query field.",
+      description: "Filter by storage size. Extract storage capacity from user query (e.g. '128 GB', '256 GB', '512 GB'). Supports multiple sizes separated by 'or', 'and', comma, or slash (e.g. '64GB or 128GB', '128GB and 256GB'). ALWAYS use this parameter when user mentions storage, not the query field.",
     },
     condition: {
       type: "string",
-      description: "Filter by device condition. Extract condition from user query (e.g. 'new', 'refurbished', 'used'). ALWAYS use this parameter when user mentions condition, not the query field.",
+      description: "Filter by device condition. Extract condition from user query (e.g. 'new', 'refurbished', 'used'). Supports multiple conditions separated by 'or', 'and', comma, or slash (e.g. 'new or used', 'new and refurbished'). ALWAYS use this parameter when user mentions condition, not the query field.",
     },
     billingTerm: {
       type: "string",
@@ -276,6 +276,47 @@ type SearchableRecord = {
   brand?: string;
   product_category?: string;
 };
+
+/**
+ * Parse a filter value that may contain multiple options separated by:
+ * - "or" / "OR"
+ * - "and" / "AND" / "&"
+ * - "/" or ","
+ * Returns an array of normalized, trimmed values
+ */
+function parseMultiValueFilter(filterValue?: string): string[] {
+  if (!filterValue) {
+    return [];
+  }
+  
+  // Split by common separators: or, and, &, /, comma
+  const parts = filterValue
+    .split(/\s+(?:or|and|OR|AND)\s+|[,/&]/)
+    .map(part => part.trim().toLowerCase())
+    .filter(part => part.length > 0);
+  
+  return parts;
+}
+
+/**
+ * Check if device attribute matches any of the filter values
+ */
+function matchesAnyValue(deviceValue: string, filterValue?: string): boolean {
+  if (!filterValue) {
+    return true;
+  }
+  
+  const deviceValueLower = deviceValue.toLowerCase();
+  const filterValues = parseMultiValueFilter(filterValue);
+  
+  // If no values after parsing, return true (no filter)
+  if (filterValues.length === 0) {
+    return true;
+  }
+  
+  // Check if device value matches ANY of the filter values
+  return filterValues.some(value => deviceValueLower.includes(value));
+}
 
 function matchesQuery(record: SearchableRecord, query?: string): boolean {
   if (!query) {
@@ -364,34 +405,39 @@ function filterDevices(devices: DeviceRecord[], filters: ToolInput) {
       return false;
     }
 
-    if (filters.color) {
-      const deviceColor = (device.color ?? "").toLowerCase();
-      const filterColor = filters.color.toLowerCase();
-      if (!deviceColor.includes(filterColor)) {
-        return false;
-      }
+    if (filters.color && !matchesAnyValue(device.color ?? "", filters.color)) {
+      return false;
     }
 
     if (filters.size) {
-      const deviceSize = (device.size ?? "").toLowerCase();
-      const filterSize = filters.size.toLowerCase();
-      // Match both "128 GB" and "128GB" formats
-      if (!deviceSize.includes(filterSize.replace(/\s+/g, '')) && !deviceSize.includes(filterSize)) {
-        return false;
+      const deviceSize = (device.size ?? "").toLowerCase().replace(/\s+/g, '');
+      const filterSizes = parseMultiValueFilter(filters.size).map(s => s.replace(/\s+/g, ''));
+      
+      // Check if device size matches any of the requested sizes
+      if (filterSizes.length > 0) {
+        const matches = filterSizes.some(filterSize => deviceSize.includes(filterSize));
+        if (!matches) {
+          return false;
+        }
       }
     }
 
     if (filters.condition) {
+      // Parse multiple conditions and normalize refurbished to used
+      const filterConditions = parseMultiValueFilter(filters.condition).map(c => {
+        return c === "refurbished" ? "used" : c;
+      });
+      
       const deviceCondition = (device.condition ?? "").toLowerCase();
-      let filterCondition = filters.condition.toLowerCase();
       
-      // Map "refurbished" to "used" since they're the same in the catalog
-      if (filterCondition === "refurbished") {
-        filterCondition = "used";
-      }
-      
-      if (!deviceCondition.includes(filterCondition)) {
-        return false;
+      // Check if device condition matches any of the requested conditions
+      if (filterConditions.length > 0) {
+        const matches = filterConditions.some(filterCondition => 
+          deviceCondition.includes(filterCondition)
+        );
+        if (!matches) {
+          return false;
+        }
       }
     }
 
@@ -568,6 +614,18 @@ function createVisibleServer(): Server {
       console.log("=== MCP Tool Called ===");
       console.log("Tool:", request.params.name);
       console.log("Arguments received:", JSON.stringify(args, null, 2));
+      
+      // Log parsed multi-value filters
+      if (args.color) {
+        console.log("Parsed colors:", parseMultiValueFilter(args.color));
+      }
+      if (args.size) {
+        console.log("Parsed sizes:", parseMultiValueFilter(args.size));
+      }
+      if (args.condition) {
+        console.log("Parsed conditions:", parseMultiValueFilter(args.condition));
+      }
+      
       console.log("Total devices in catalog:", devicesCatalog.length);
       console.log("Total plans in catalog:", plansCatalog.length);
 
@@ -599,6 +657,9 @@ function createVisibleServer(): Server {
         minPrice: args.minPrice ?? null,
         maxPrice: args.maxPrice ?? null,
         availability: args.availability ?? null,
+        color: args.color ?? null,
+        size: args.size ?? null,
+        condition: args.condition ?? null,
         billingTerm: args.billingTerm ?? null,
       };
 
