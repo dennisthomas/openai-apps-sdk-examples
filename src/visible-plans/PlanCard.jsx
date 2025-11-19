@@ -35,7 +35,7 @@ export default function PlanCard({ plan }) {
           <button
             type="button"
             onClick={() => window.open(plan.link, '_blank')}
-            className="cursor-pointer inline-flex items-center rounded-full bg-[#1800ff] text-white px-4 py-1.5 text-sm font-medium hover:opacity-90 active:opacity-100"
+            className="cursor-pointer inline-flex items-center rounded-full bg-[#ef0000] text-white px-4 py-1.5 text-sm font-medium hover:opacity-90 active:opacity-100"
           >
             View on Visible.com
           </button>
