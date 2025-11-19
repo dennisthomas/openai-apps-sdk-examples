@@ -200,11 +200,11 @@ const toolInputSchema = {
     },
     minPrice: {
       type: "number",
-      description: "Minimum device price in USD.",
+      description: "Minimum device price in USD. Use when user says 'at least $X', 'minimum $X', 'starting at $X', 'above $X', or similar.",
     },
     maxPrice: {
       type: "number",
-      description: "Maximum device price in USD.",
+      description: "Maximum device price in USD. ALWAYS use when user says 'under $X', 'below $X', 'no more than $X', 'budget of $X', 'up to $X', 'within $X', 'stay under $X', 'aiming for $X', or similar budget/limit phrases. This is a hard limit - devices above this price should NOT be shown.",
     },
     availability: {
       type: "string",
@@ -626,6 +626,16 @@ function createVisibleServer(): Server {
         console.log("Parsed conditions:", parseMultiValueFilter(args.condition));
       }
       
+      // Log price filters
+      if (args.minPrice !== undefined) {
+        console.log("MIN PRICE FILTER:", args.minPrice);
+      }
+      if (args.maxPrice !== undefined) {
+        console.log("MAX PRICE FILTER:", args.maxPrice);
+      } else {
+        console.log("⚠️ WARNING: No maxPrice filter applied (user may have mentioned budget)");
+      }
+      
       console.log("Total devices in catalog:", devicesCatalog.length);
       console.log("Total plans in catalog:", plansCatalog.length);
 
@@ -645,6 +655,25 @@ function createVisibleServer(): Server {
         console.log("Filtered devices count:", filteredDevices.length);
         if (filteredDevices.length > 0) {
           console.log("Sample device:", JSON.stringify(filteredDevices[0], null, 2));
+          // Log price range of filtered results
+          const prices = filteredDevices.map(d => devicePrice(d)).filter(p => p !== null) as number[];
+          if (prices.length > 0) {
+            console.log("Price range in results: $" + Math.min(...prices) + " - $" + Math.max(...prices));
+          }
+          // Check if any results exceed maxPrice
+          if (args.maxPrice !== undefined) {
+            const overBudget = filteredDevices.filter(d => {
+              const price = devicePrice(d);
+              return price !== null && price > args.maxPrice!;
+            });
+            if (overBudget.length > 0) {
+              console.log("🚨 ERROR: " + overBudget.length + " devices exceed maxPrice $" + args.maxPrice);
+              console.log("Over-budget devices:", overBudget.map(d => ({
+                title: d.title,
+                price: devicePrice(d)
+              })));
+            }
+          }
         }
       }
       if (filteredPlans) {
