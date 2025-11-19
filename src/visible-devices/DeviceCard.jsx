@@ -20,14 +20,14 @@ export default function DeviceCard({ device }) {
         />
       </div>
       <div className="mt-3 flex flex-col flex-1">
-        <div className="text-base font-medium truncate line-clamp-1 text-gray-900 dark:text-white">{device.title}</div>
-        <div className="text-xs mt-1 text-gray-600 dark:text-gray-300 flex items-center gap-1">
+        <div className="text-base font-medium truncate line-clamp-1 text-gray-900 dark:text-white" style={{color: 'light-dark(#111827, #ffffff)'}}>{device.title}</div>
+        <div className="text-xs mt-1 text-gray-600 dark:text-gray-300 flex items-center gap-1" style={{color: 'light-dark(#4b5563, #d1d5db)'}}>
           <span className="font-semibold">${price}</span>
           {device.condition && <span>· {device.condition === "used" ? "Refurbished" : device.condition}</span>}
           {!inStock && <span>· Low Stock</span>}
         </div>
         {(device.color || device.size) && (
-          <div className="text-sm mt-2 text-gray-700 dark:text-gray-300 flex-auto">
+          <div className="text-sm mt-2 text-gray-700 dark:text-gray-300 flex-auto" style={{color: 'light-dark(#374151, #d1d5db)'}}>
             {device.color && <span>{device.color}</span>}
             {device.color && device.size && <span> · </span>}
             {device.size && <span>{device.size}</span>}

@@ -4,6 +4,19 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  /* Enable color-scheme support for proper light-dark() function */
+  :root {
+    color-scheme: light dark;
+  }
+  
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+    }
+  }
+}
+
 @layer utilities {
   .overflow-auto > *,
   .overflow-scroll > *,

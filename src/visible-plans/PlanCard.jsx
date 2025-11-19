@@ -21,13 +21,13 @@ export default function PlanCard({ plan }) {
         />
       </div>
       <div className="mt-3 flex flex-col flex-1">
-        <div className="text-base font-medium truncate line-clamp-1 text-gray-900 dark:text-white">{plan.title}</div>
-        <div className="text-xs mt-1 text-gray-600 dark:text-gray-300 flex items-center gap-1">
+        <div className="text-base font-medium truncate line-clamp-1 text-gray-900 dark:text-white" style={{color: 'light-dark(#111827, #ffffff)'}}>{plan.title}</div>
+        <div className="text-xs mt-1 text-gray-600 dark:text-gray-300 flex items-center gap-1" style={{color: 'light-dark(#4b5563, #d1d5db)'}}>
           <span className="font-semibold">${monthlyPrice}/mo</span>
           {isAnnual && <span>· Annual</span>}
         </div>
         {plan.description && (
-          <div className="text-sm mt-2 text-gray-700 dark:text-gray-300 flex-auto line-clamp-2">
+          <div className="text-sm mt-2 text-gray-700 dark:text-gray-300 flex-auto line-clamp-2" style={{color: 'light-dark(#374151, #d1d5db)'}}>
             {plan.description}
           </div>
         )}
