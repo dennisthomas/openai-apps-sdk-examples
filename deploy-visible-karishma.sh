@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Deployment script for Visible MCP Server to Google Cloud Run
-# Usage: ./deploy-visible-to-cloud-run.sh PROJECT_ID [REGION]
+# Deployment script for Visible Karishma branch to Manager's GCP (visible-final)
+# This deploys visible-karishma branch to shining-courage-434003-h1 project
 
 set -e
 
@@ -11,30 +11,25 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Configuration
-SERVICE_NAME="visible-mcp-server"
-DEFAULT_REGION="us-central1"
-
-# Check arguments
-if [ -z "$1" ]; then
-  echo -e "${RED}Error: PROJECT_ID is required${NC}"
-  echo "Usage: $0 PROJECT_ID [REGION]"
-  echo "Example: $0 my-gcp-project us-central1"
-  exit 1
-fi
-
-PROJECT_ID=$1
-REGION=${2:-$DEFAULT_REGION}
+# Configuration - FIXED for manager's project
+PROJECT_ID="shining-courage-434003-h1"
+SERVICE_NAME="visible-final"
+REGION="us-central1"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME"
 
+# Set manager's environment
+export GCP_PROJECT_ID="$PROJECT_ID"
+export PATH=/opt/homebrew/share/google-cloud-sdk/bin:"$PATH"
+
 echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║  Deploying Visible MCP Server to Google Cloud Run         ║${NC}"
+echo -e "${GREEN}║  Deploying Visible Karishma to Manager's GCP Project      ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo "Project ID: $PROJECT_ID"
+echo "Project ID: $PROJECT_ID (Manager's)"
 echo "Region: $REGION"
 echo "Service Name: $SERVICE_NAME"
 echo "Image: $IMAGE_NAME"
+echo "Branch: visible-karishma (from manager's repo)"
 echo ""
 
 # Check if gcloud is installed
@@ -52,7 +47,7 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # Set the project
-echo -e "${YELLOW}Setting GCP project...${NC}"
+echo -e "${YELLOW}Setting GCP project to manager's project...${NC}"
 gcloud config set project $PROJECT_ID
 
 # Enable required APIs
@@ -67,14 +62,13 @@ gcloud services enable \
 echo -e "${YELLOW}Configuring Docker authentication...${NC}"
 gcloud auth configure-docker --quiet
 
-# First, do a temporary deploy to get the service URL, or use existing if available
+# Check for existing service URL
 echo -e "${YELLOW}Checking for existing service URL...${NC}"
 EXISTING_URL=$(gcloud run services describe $SERVICE_NAME \
   --region=$REGION \
   --format="value(status.url)" 2>/dev/null || echo "")
 
 if [ -z "$EXISTING_URL" ]; then
-  # Generate the expected URL format
   BASE_URL="https://${SERVICE_NAME}-$(gcloud config get-value project | tr ':' '-')-${REGION//-/}.a.run.app"
   echo -e "${YELLOW}First deployment - using expected URL: $BASE_URL${NC}"
 else
@@ -84,7 +78,7 @@ fi
 
 # Build the Docker image with BASE_URL
 echo -e "${YELLOW}Building Docker image for linux/amd64 platform...${NC}"
-echo -e "${YELLOW}BASE_URL set to: $BASE_URL${NC}"
+echo -e "${YELLOW}BASE_URL set to: $BASE_URL/assets${NC}"
 docker build --platform linux/amd64 \
   --build-arg BASE_URL="$BASE_URL/assets" \
   -f Dockerfile.visible \
@@ -151,7 +145,7 @@ echo "  curl $SERVICE_URL/assets/visible-devices.html"
 echo ""
 echo "Next steps:"
 echo "  1. Test your service: curl $SERVICE_URL/health"
-echo "  2. View logs: gcloud run services logs read $SERVICE_NAME --region=$REGION"
+echo "  2. View logs: gcloud run services logs read $SERVICE_NAME --region=$REGION --project=$PROJECT_ID"
 echo "  3. Monitor: https://console.cloud.google.com/run/detail/$REGION/$SERVICE_NAME?project=$PROJECT_ID"
 echo ""
 echo "To add to ChatGPT:"
