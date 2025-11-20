@@ -46,8 +46,8 @@ RUN pnpm install --frozen-lockfile --prod
 COPY --from=builder /app/assets ./assets
 
 # Copy catalog JSON files (devices and plans data)
-COPY src/visible-devices/devices.json ./src/visible-devices/
-COPY src/visible-plans/plans.json ./src/visible-plans/
+COPY src/visible-devices/total_wireless_iphones.json ./src/visible-devices/
+COPY src/visible-plans/total_wireless_plans.json ./src/visible-plans/
 
 # Copy server source
 COPY visible_server_node/src ./visible_server_node/src

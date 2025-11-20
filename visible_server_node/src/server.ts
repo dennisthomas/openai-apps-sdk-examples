@@ -124,13 +124,13 @@ const DEVICES_DATA_PATH = path.resolve(
   ROOT_DIR,
   "src",
   "visible-devices",
-  "devices.json"
+  "total_wireless_iphones.json"
 );
 const PLANS_DATA_PATH = path.resolve(
   ROOT_DIR,
   "src",
   "visible-plans",
-  "plans.json"
+  "total_wireless_plans.json"
 );
 
 type PriceField = {
