@@ -12,7 +12,7 @@
       "value": 0.0,
       "unit": "lb"
     },
-    "image_link": "./base.png",
+    "image_link": "https://totalwireless-ge4qawxpca-uc.a.run.app/assets/base.png",
     "price": {
       "value": 40.0,
       "currency": "USD"
@@ -48,7 +48,7 @@
       "value": 0.0,
       "unit": "lb"
     },
-    "image_link": "./total5gPlus.png",
+    "image_link": "https://totalwireless-ge4qawxpca-uc.a.run.app/assets/total5gPlus.png",
     "price": {
       "value": 60.0,
       "currency": "USD"
@@ -84,7 +84,7 @@
       "value": 0.0,
       "unit": "lb"
     },
-    "image_link": "./total5g.png",
+    "image_link": "https://totalwireless-ge4qawxpca-uc.a.run.app/assets/total5g.png",
     "price": {
       "value": 50.0,
       "currency": "USD"

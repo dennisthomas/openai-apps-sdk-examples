@@ -45,6 +45,9 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy built assets from builder stage
 COPY --from=builder /app/assets ./assets
 
+# Copy plan images to assets folder
+COPY src/visible-plans/*.png ./assets/
+
 # Copy catalog JSON files (devices and plans data)
 COPY src/visible-devices/total_wireless_iphones.json ./src/visible-devices/
 COPY src/visible-plans/total_wireless_plans.json ./src/visible-plans/
