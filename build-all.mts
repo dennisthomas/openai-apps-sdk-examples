@@ -24,6 +24,7 @@ const targets: string[] = [
   "pizzaz-shop",
   "visible-plans",
   "visible-devices",
+  "visible-stores",
 ];
 const builtNames: string[] = [];
 

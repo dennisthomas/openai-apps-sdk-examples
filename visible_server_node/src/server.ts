@@ -110,6 +110,15 @@ const widgets: VisibleWidget[] = [
     html: readWidgetHtml("visible-devices"),
     responseText: "Found matching devices in the Visible catalog!",
   },
+  {
+    id: "visible-stores",
+    title: "Find Total Wireless Stores",
+    templateUri: "ui://widget/visible-stores.html",
+    invoking: "Finding nearby stores",
+    invoked: "Displayed store locations",
+    html: readWidgetHtml("visible-stores"),
+    responseText: "Found Total Wireless store locations!",
+  },
 ];
 
 const widgetsById = new Map<string, VisibleWidget>();
@@ -131,6 +140,12 @@ const PLANS_DATA_PATH = path.resolve(
   "src",
   "visible-plans",
   "total_wireless_plans.json"
+);
+const STORES_DATA_PATH = path.resolve(
+  ROOT_DIR,
+  "src",
+  "visible-stores",
+  "stores.json"
 );
 
 type PriceField = {
@@ -164,6 +179,19 @@ type PlanRecord = {
   [key: string]: unknown;
 };
 
+type StoreRecord = {
+  id: string;
+  name: string;
+  coords: [number, number];
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  phone: string;
+  hours: string;
+  [key: string]: unknown;
+};
+
 function loadJsonFile<T>(filePath: string): T[] {
   try {
     const raw = fs.readFileSync(filePath, "utf8");
@@ -176,6 +204,16 @@ function loadJsonFile<T>(filePath: string): T[] {
 
 const devicesCatalog = loadJsonFile<DeviceRecord>(DEVICES_DATA_PATH);
 const plansCatalog = loadJsonFile<PlanRecord>(PLANS_DATA_PATH);
+const storesCatalog = ((): StoreRecord[] => {
+  try {
+    const raw = fs.readFileSync(STORES_DATA_PATH, "utf8");
+    const data = JSON.parse(raw) as { stores: StoreRecord[] };
+    return data.stores || [];
+  } catch (error) {
+    console.error(`Failed to load stores catalog`, error);
+    return [];
+  }
+})();
 
 const toolInputSchema = {
   type: "object",
@@ -505,16 +543,53 @@ function filterPlans(plans: PlanRecord[], filters: ToolInput) {
   });
 }
 
+const storeInputSchema = {
+  type: "object",
+  properties: {
+    city: {
+      type: "string",
+      description: "City name to search for stores (e.g. 'Dallas', 'Plano', 'Fort Worth').",
+    },
+    state: {
+      type: "string",
+      description: "State abbreviation to filter stores (e.g. 'TX', 'CA').",
+    },
+    zip: {
+      type: "string",
+      description: "ZIP code to find stores in a specific area.",
+    },
+  },
+  additionalProperties: false,
+} as const;
+
+const storeInputParser = z.object({
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zip: z.string().optional(),
+});
+
 const tools: Tool[] = widgets.map((widget) => {
   const isPlans = widget.id === "visible-plans";
-  const description = isPlans
-    ? "Search and filter Visible mobile plans by price range, billing term, or text query. Returns matching plans with pricing and features."
-    : "Search and filter Visible devices (phones, accessories) by brand, price range, availability, category, or text query. Returns matching devices with prices and details.";
+  const isStores = widget.id === "visible-stores";
+  
+  let description: string;
+  let schema: typeof toolInputSchema | typeof storeInputSchema;
+  
+  if (isStores) {
+    description = "Find Total Wireless store locations by city, state, or ZIP code. Shows stores on an interactive map with addresses, phone numbers, and hours.";
+    schema = storeInputSchema;
+  } else if (isPlans) {
+    description = "Search and filter Visible mobile plans by price range, billing term, or text query. Returns matching plans with pricing and features.";
+    schema = toolInputSchema;
+  } else {
+    description = "Search and filter Visible devices (phones, accessories) by brand, price range, availability, category, or text query. Returns matching devices with prices and details.";
+    schema = toolInputSchema;
+  }
   
   return {
     name: widget.id,
     description,
-    inputSchema: toolInputSchema,
+    inputSchema: schema,
     title: widget.title,
     _meta: widgetDescriptorMeta(widget),
     // To disable the approval prompt for the widgets
@@ -608,6 +683,51 @@ function createVisibleServer(): Server {
         throw new Error(`Unknown tool: ${request.params.name}`);
       }
 
+      // Handle store locator separately
+      if (widget.id === "visible-stores") {
+        const storeArgs = storeInputParser.parse(request.params.arguments ?? {});
+        
+        console.log("=== Store Locator Tool Called ===");
+        console.log("Arguments:", JSON.stringify(storeArgs, null, 2));
+        
+        // Filter stores based on location
+        const filteredStores = storesCatalog.filter((store) => {
+          if (storeArgs.city && store.city.toLowerCase() !== storeArgs.city.toLowerCase()) {
+            return false;
+          }
+          if (storeArgs.state && store.state.toLowerCase() !== storeArgs.state.toLowerCase()) {
+            return false;
+          }
+          if (storeArgs.zip && store.zip !== storeArgs.zip) {
+            return false;
+          }
+          return true;
+        });
+        
+        console.log(`Found ${filteredStores.length} stores`);
+        
+        return {
+          content: [
+            {
+              type: "text",
+              text: widget.responseText,
+            },
+          ],
+          structuredContent: {
+            stores: filteredStores,
+            location: {
+              city: storeArgs.city || null,
+              state: storeArgs.state || null,
+              zip: storeArgs.zip || null,
+            },
+            resultCount: filteredStores.length,
+            totalCount: storesCatalog.length,
+          },
+          _meta: widgetInvocationMeta(widget),
+        };
+      }
+
+      // Handle devices and plans
       const args = toolInputParser.parse(request.params.arguments ?? {});
 
       // Debug logging
