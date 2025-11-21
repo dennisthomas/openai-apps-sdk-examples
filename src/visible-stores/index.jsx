@@ -110,21 +110,33 @@ export default function App() {
   const [emblaRef] = useEmblaCarousel({ dragFree: true, loop: false });
   const scrollRef = useRef(null);
   const [showBottomFade, setShowBottomFade] = useState(false);
+  const hasInitiallyFit = useRef(false);
+  const [isDataReady, setIsDataReady] = useState(false);
   
   const allStores = stores?.stores || [];
   
   // Filter stores based on widget data (location from MCP tool)
   const filteredStores = React.useMemo(() => {
-    if (!widgetData?.location) return allStores;
+    // Only return stores after widgetData has been checked
+    if (widgetData === null) return []; // Still loading
+    
+    if (!widgetData?.location) {
+      // No location filter, use all stores
+      setIsDataReady(true);
+      return allStores;
+    }
     
     const { city, state, zip } = widgetData.location;
     
-    return allStores.filter((store) => {
+    const filtered = allStores.filter((store) => {
       if (city && store.city.toLowerCase() !== city.toLowerCase()) return false;
       if (state && store.state.toLowerCase() !== state.toLowerCase()) return false;
       if (zip && store.zip !== zip) return false;
       return true;
     });
+    
+    setIsDataReady(true);
+    return filtered;
   }, [widgetData, allStores]);
 
   const storeCoords = filteredStores.map((s) => s.coords);
@@ -151,21 +163,18 @@ export default function App() {
     };
   }, [filteredStores, updateBottomFadeVisibility]);
 
+  // Create map only once
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || mapObj.current) return;
 
     const map = new mapboxgl.Map({
       container: mapRef.current,
       style: "mapbox://styles/mapbox/streets-v12",
-      center: storeCoords[0] || [-96.7970, 32.7767],
-      zoom: 12,
+      center: [-96.7970, 32.7767], // Default center - will be updated by markers
+      zoom: 4,
     });
 
     mapObj.current = map;
-
-    map.on("load", () => {
-      fitMapToMarkers(map, storeCoords);
-    });
 
     // Ensure map resizes properly
     requestAnimationFrame(() => map.resize());
@@ -173,16 +182,18 @@ export default function App() {
 
     return () => {
       window.removeEventListener("resize", map.resize);
-      markerObjs.current.forEach((m) => m.remove());
-      markerObjs.current = [];
-      map.remove();
-      mapObj.current = null;
+      if (mapObj.current) {
+        mapObj.current.remove();
+        mapObj.current = null;
+      }
     };
   }, []);
 
+  // Update markers when filtered stores change
   useEffect(() => {
     const map = mapObj.current;
-    if (!map) return;
+    // Don't add markers until data is ready and we have stores
+    if (!map || !isDataReady || !filteredStores.length) return;
 
     // Remove old markers
     markerObjs.current.forEach((m) => m.remove());
@@ -208,8 +219,12 @@ export default function App() {
       markerObjs.current.push(marker);
     });
 
-    fitMapToMarkers(map, storeCoords);
-  }, [filteredStores]);
+    // Fit map to markers only on first load or when stores change significantly
+    if (!hasInitiallyFit.current || markerObjs.current.length > 0) {
+      fitMapToMarkers(map, storeCoords);
+      hasInitiallyFit.current = true;
+    }
+  }, [filteredStores, isDataReady]);
 
   // Ensure Mapbox resizes when container maxHeight/display mode changes
   useEffect(() => {
