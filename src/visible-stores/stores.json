@@ -289,6 +289,78 @@
       "thumbnail": "https://totalwireless-ge4qawxpca-uc.a.run.app/assets/store-icon.png"
     },
     {
+      "id": "total-wireless-irving-mall",
+      "name": "Total Wireless - Irving Mall Kiosk",
+      "address": "3551 N Belt Line Rd, Irving, TX 75062",
+      "coords": [-96.99385293282002, 32.85562822831203],
+      "city": "Irving",
+      "state": "TX",
+      "zip": "75062",
+      "phone": "(972) 555-0140",
+      "hours": "Mon-Sat: 10AM-9PM, Sun: 12PM-6PM",
+      "thumbnail": "https://totalwireless-ge4qawxpca-uc.a.run.app/assets/store-icon.png"
+    },
+    {
+      "id": "total-wireless-east-irving",
+      "name": "Total Wireless - East Irving",
+      "address": "1018 E Irving Blvd #320, Irving, TX 75060",
+      "coords": [-96.93419576998633, 32.81468695358678],
+      "city": "Irving",
+      "state": "TX",
+      "zip": "75060",
+      "phone": "(972) 555-0141",
+      "hours": "Mon-Sat: 10AM-9PM, Sun: 12PM-6PM",
+      "thumbnail": "https://totalwireless-ge4qawxpca-uc.a.run.app/assets/store-icon.png"
+    },
+    {
+      "id": "total-wireless-airport-freeway",
+      "name": "Total Wireless - Airport Freeway",
+      "address": "1111 W Airport Fwy STE 151, Irving, TX 75062",
+      "coords": [-96.96061022776748, 32.841886259939606],
+      "city": "Irving",
+      "state": "TX",
+      "zip": "75062",
+      "phone": "(972) 555-0140",
+      "hours": "Mon-Sat: 10AM-9PM, Sun: 12PM-6PM",
+      "thumbnail": "https://totalwireless-ge4qawxpca-uc.a.run.app/assets/store-icon.png"
+    },
+    {
+      "id": "total-wireless-grauwyler-road",
+      "name": "Total Wireless - Grauwyler Rd",
+      "address": "255 E Grauwyler Rd STE 138, Irving, TX 75061",
+      "coords": [-96.94293022104647, 32.831567726040184],
+      "city": "Irving",
+      "state": "TX",
+      "zip": "75061",
+      "phone": "(972) 555-0141",
+      "hours": "Mon-Sat: 10AM-9PM, Sun: 12PM-6PM",
+      "thumbnail": "https://totalwireless-ge4qawxpca-uc.a.run.app/assets/store-icon.png"
+    },
+    {
+      "id": "total-wireless-west-irving",
+      "name": "Total Wireless - West Irving Blvd",
+      "address": "2728 W Irving Blvd, Irving, TX 75061",
+      "coords": [-96.98414464584967, 32.83207596687814],
+      "city": "Irving",
+      "state": "TX",
+      "zip": "75061",
+      "phone": "(972) 555-0141",
+      "hours": "Mon-Sat: 10AM-9PM, Sun: 12PM-6PM",
+      "thumbnail": "https://totalwireless-ge4qawxpca-uc.a.run.app/assets/store-icon.png"
+    },
+    {
+      "id": "total-wireless-belt-line-north",
+      "name": "Total Wireless - Belt Line Crossing",
+      "address": "3551 N Belt Line Rd, Irving, TX 75062",
+      "coords": [-96.99385293282002, 32.85562822831203],
+      "city": "Irving",
+      "state": "TX",
+      "zip": "75062",
+      "phone": "(972) 555-0140",
+      "hours": "Mon-Sat: 10AM-9PM, Sun: 12PM-6PM",
+      "thumbnail": "https://totalwireless-ge4qawxpca-uc.a.run.app/assets/store-icon.png"
+    },
+    {
       "id": "seattle-downtown",
       "name": "Total Wireless - Downtown Seattle",
       "coords": [-122.3356, 47.6097],
