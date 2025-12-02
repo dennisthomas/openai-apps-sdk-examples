@@ -244,6 +244,10 @@ const toolInputSchema = {
       type: "number",
       description: "Maximum device price in USD. ALWAYS use when user says 'under $X', 'below $X', 'no more than $X', 'budget of $X', 'up to $X', 'within $X', 'stay under $X', 'aiming for $X', or similar budget/limit phrases. This is a hard limit - devices above this price should NOT be shown.",
     },
+    exactPrice: {
+      type: "number",
+      description: "Exact device price in USD. Use when user specifies a specific price like 'the $391 option', 'I like the $500 one', 'show me the $299 device'. This will filter to show ONLY devices at this exact price point.",
+    },
     availability: {
       type: "string",
       enum: ["in_stock", "out_of_stock"],
@@ -260,6 +264,19 @@ const toolInputSchema = {
     condition: {
       type: "string",
       description: "Filter by device condition. Extract condition from user query (e.g. 'new', 'refurbished', 'used'). Supports multiple conditions separated by 'or', 'and', comma, or slash (e.g. 'new or used', 'new and refurbished'). ALWAYS use this parameter when user mentions condition, not the query field.",
+    },
+    limit: {
+      type: "number",
+      description: "Limit number of results. Use 1 when user is finalizing a purchase or making a definite choice (e.g., 'I want to buy this', 'I'll take the first one', 'ready to buy', 'I choose', 'I'll go with'). Use this to show only the selected item.",
+    },
+    selectIndex: {
+      type: "number",
+      description: "Select item by position (0-based index). Use when user refers to position like 'the first one' (0), 'second option' (1), 'third one' (2), 'last one' (use with current result count). Combine with limit:1 to show only that item.",
+    },
+    sortBy: {
+      type: "string",
+      enum: ["price_low", "price_high"],
+      description: "Sort results by price. Use 'price_low' for cheapest first, 'price_high' for most expensive first. When user says 'cheapest', use this with selectIndex:0 and limit:1.",
     },
     billingTerm: {
       type: "string",
@@ -279,10 +296,14 @@ const toolInputParser = z.object({
   productCategory: z.string().optional(),
   minPrice: z.coerce.number().optional(),
   maxPrice: z.coerce.number().optional(),
+  exactPrice: z.coerce.number().optional(),
   availability: z.enum(["in_stock", "out_of_stock"]).optional(),
   color: z.string().optional(),
   size: z.string().optional(),
   condition: z.string().optional(),
+  limit: z.coerce.number().optional(),
+  selectIndex: z.coerce.number().optional(),
+  sortBy: z.enum(["price_low", "price_high"]).optional(),
   billingTerm: z.enum(["monthly", "annual", "multi-month"]).optional(),
 });
 
@@ -494,6 +515,14 @@ function filterDevices(devices: DeviceRecord[], filters: ToolInput) {
       return false;
     }
 
+    // Exact price filter - use when user selects a specific device by price
+    if (
+      filters.exactPrice !== undefined &&
+      (price === null || price !== filters.exactPrice)
+    ) {
+      return false;
+    }
+
     return true;
   });
 }
@@ -528,6 +557,14 @@ function filterPlans(plans: PlanRecord[], filters: ToolInput) {
     if (
       filters.maxPrice !== undefined &&
       (price === null || price > filters.maxPrice)
+    ) {
+      return false;
+    }
+
+    // Exact price filter - use when user selects a specific plan by price
+    if (
+      filters.exactPrice !== undefined &&
+      (price === null || price !== filters.exactPrice)
     ) {
       return false;
     }
@@ -755,20 +792,74 @@ function createVisibleServer(): Server {
       } else {
         console.log("⚠️ WARNING: No maxPrice filter applied (user may have mentioned budget)");
       }
+      if (args.exactPrice !== undefined) {
+        console.log("🎯 EXACT PRICE FILTER:", args.exactPrice, "- User selected specific device");
+      }
+      if (args.limit !== undefined) {
+        console.log("📊 LIMIT RESULTS:", args.limit, "- User finalizing choice");
+      }
+      if (args.selectIndex !== undefined) {
+        console.log("👆 SELECT BY INDEX:", args.selectIndex, "- User chose by position");
+      }
+      if (args.sortBy !== undefined) {
+        console.log("🔄 SORT BY:", args.sortBy);
+      }
       
       console.log("Total devices in catalog:", devicesCatalog.length);
       console.log("Total plans in catalog:", plansCatalog.length);
 
       const resolvedCategory =
         args.category ?? (widget.id === "visible-plans" ? "plans" : "devices");
-      const filteredDevices =
+      let filteredDevices =
         widget.id === "visible-devices"
           ? filterDevices(devicesCatalog, args)
           : null;
-      const filteredPlans =
+      let filteredPlans =
         widget.id === "visible-plans"
           ? filterPlans(plansCatalog, args)
           : null;
+      
+      // Apply sorting if requested
+      if (args.sortBy && filteredDevices) {
+        filteredDevices = [...filteredDevices].sort((a, b) => {
+          const priceA = devicePrice(a) ?? 0;
+          const priceB = devicePrice(b) ?? 0;
+          return args.sortBy === "price_low" ? priceA - priceB : priceB - priceA;
+        });
+        console.log("✅ Sorted devices by", args.sortBy);
+      }
+      if (args.sortBy && filteredPlans) {
+        filteredPlans = [...filteredPlans].sort((a, b) => {
+          const priceA = planPrice(a) ?? 0;
+          const priceB = planPrice(b) ?? 0;
+          return args.sortBy === "price_low" ? priceA - priceB : priceB - priceA;
+        });
+        console.log("✅ Sorted plans by", args.sortBy);
+      }
+      
+      // Apply index selection if requested (e.g., "the first one", "second option")
+      if (args.selectIndex !== undefined) {
+        if (filteredDevices && args.selectIndex < filteredDevices.length) {
+          filteredDevices = [filteredDevices[args.selectIndex]];
+          console.log("✅ Selected device at index", args.selectIndex);
+        }
+        if (filteredPlans && args.selectIndex < filteredPlans.length) {
+          filteredPlans = [filteredPlans[args.selectIndex]];
+          console.log("✅ Selected plan at index", args.selectIndex);
+        }
+      }
+      
+      // Apply limit if requested (e.g., user finalizing purchase)
+      if (args.limit !== undefined) {
+        if (filteredDevices) {
+          filteredDevices = filteredDevices.slice(0, args.limit);
+          console.log("✅ Limited devices to", args.limit);
+        }
+        if (filteredPlans) {
+          filteredPlans = filteredPlans.slice(0, args.limit);
+          console.log("✅ Limited plans to", args.limit);
+        }
+      }
       
       // Log filtering results
       if (filteredDevices) {
@@ -805,10 +896,14 @@ function createVisibleServer(): Server {
         productCategory: args.productCategory ?? null,
         minPrice: args.minPrice ?? null,
         maxPrice: args.maxPrice ?? null,
+        exactPrice: args.exactPrice ?? null,
         availability: args.availability ?? null,
         color: args.color ?? null,
         size: args.size ?? null,
         condition: args.condition ?? null,
+        limit: args.limit ?? null,
+        selectIndex: args.selectIndex ?? null,
+        sortBy: args.sortBy ?? null,
         billingTerm: args.billingTerm ?? null,
       };
 
