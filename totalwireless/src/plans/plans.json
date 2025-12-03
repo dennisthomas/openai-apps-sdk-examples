@@ -3,252 +3,108 @@
     "enable_search": "true",
     "enable_checkout": "false",
     "id": "PPLUS1VIS25WB",
-    "title": "Visible+ Pro",
-    "description": "Visible+ Pro Monthly Plan - Unlimited Talk, Text, Data",
-    "link": "https://www.visible.com/shop/plan-selected?code=PPLUS1VIS25WB",
+    "title": "Total Base 5G Unlimited Monthly Plan",
+    "description": "Total Base 5G Unlimited Monthly Plan - Unlimited Data, 5 GB hotspot, Calling to 85+ countries, Texting to 200+ countries, Roaming in Canada & Mexico.",
+    "link": "https://www.totalwireless.com/plans/total-base-5g-unlimited",
     "product_category": "Electronics > Mobile Plans",
     "material": "digital service",
     "weight": {
       "value": 0.0,
       "unit": "lb"
     },
-    "image_link": "https://visible.scene7.com/is/image/visible/Visible_Plus_Pro_Monthly_Plan?$WEBP$",
+    "image_link": "https://totalwireless-ge4qawxpca-uc.a.run.app/assets/base.png",
     "price": {
-      "value": 45.0,
+      "value": 40.0,
       "currency": "USD"
     },
     "availability": "in_stock",
     "inventory_quantity": 1000000,
-    "seller_url": "https://www.visible.com/",
-    "return_policy": "https://www.visible.com/returns-policy/",
+    "seller_url": "https://www.totalwireless.com/",
+    "return_policy": "https://www.totalwireless.com/terms-and-conditions#return",
     "return_window": 0,
-    "seller_name": "Visible",
-    "brand": "Visible",
+    "seller_name": "Total Wireless",
+    "brand": "Total Wireless",
     "mpn": "PPLUS1VIS25WB",
     "condition": "new",
-    "seller_privacy_policy": "https://www.visible.com/legal/privacy",
-    "seller_tos": "https://www.visible.com/legal/terms-and-conditions",
+    "seller_privacy_policy": "https://www.verizon.com/about/privacy/",
+    "seller_tos": "https://www.totalwireless.com/terms-and-conditions",
     "color": null,
     "size": null,
     "sale_price": {
-      "value": 45.0,
+      "value": 40.0,
       "currency": "USD"
     }
   },
   {
     "enable_search": "true",
     "enable_checkout": "false",
-    "id": "BASE3VISIBLE23",
-    "title": "Visible plan",
-    "description": "Visible Monthly Plan - Unlimited Talk, Text, Data",
-    "link": "https://www.visible.com/shop/plan-selected?code=BASE3VISIBLE23",
+    "id": "PPLUS1VIS25WB",
+    "title": "Total 5G+ Unlimited Monthly Plan",
+    "description": "Total 5G+ Unlimited Monthly Plan - Unlimited Data, Unlimited hotspot, Calling to 180 countries, Texting to 200+ countries, Roaming in Canada & Mexico. Disney+ Premium on us.",
+    "link": "https://www.totalwireless.com/plans/total-5g-plus-unlimited-plan",
     "product_category": "Electronics > Mobile Plans",
     "material": "digital service",
     "weight": {
       "value": 0.0,
       "unit": "lb"
     },
-    "image_link": "https://visible.scene7.com/is/image/visible/Visible_Monthly_Plan?$WEBP$",
+    "image_link": "https://totalwireless-ge4qawxpca-uc.a.run.app/assets/total5gPlus.png",
     "price": {
-      "value": 25.0,
+      "value": 60.0,
       "currency": "USD"
     },
     "availability": "in_stock",
     "inventory_quantity": 1000000,
-    "seller_url": "https://www.visible.com/",
-    "return_policy": "https://www.visible.com/returns-policy/",
+    "seller_url": "https://www.totalwireless.com/",
+    "return_policy": "https://www.totalwireless.com/terms-and-conditions#return",
     "return_window": 0,
-    "seller_name": "Visible",
-    "brand": "Visible",
-    "mpn": "BASE3VISIBLE23",
+    "seller_name": "Total Wireless",
+    "brand": "Total Wireless",
+    "mpn": "PPLUS1VIS25WB",
     "condition": "new",
-    "seller_privacy_policy": "https://www.visible.com/legal/privacy",
-    "seller_tos": "https://www.visible.com/legal/terms-and-conditions",
+    "seller_privacy_policy": "https://www.verizon.com/about/privacy/",
+    "seller_tos": "https://www.totalwireless.com/terms-and-conditions",
     "color": null,
     "size": null,
     "sale_price": {
-      "value": 25.0,
+      "value": 60.0,
       "currency": "USD"
     }
   },
-  {
+   {
     "enable_search": "true",
     "enable_checkout": "false",
-    "id": "PLUS4VIS25WB",
-    "title": "Visible+",
-    "description": "Visible+ Monthly Plan - Unlimited Talk, Text, Data",
-    "link": "https://www.visible.com/shop/plan-selected?code=PLUS4VIS25WB",
+    "id": "PPLUS1VIS25WB",
+    "title": "Total 5G Unlimited",
+    "description": "Total 5G Unlimited - Unlimited Data, 15 GB hotspot, Calling to 180 countries, Texting to 200+ countries, Roaming in Canada & Mexico. Disney+ Premium on us for 6 months",
+    "link": "https://www.totalwireless.com/plans/total-5g-unlimited-plan",
     "product_category": "Electronics > Mobile Plans",
     "material": "digital service",
     "weight": {
       "value": 0.0,
       "unit": "lb"
     },
-    "image_link": "https://visible.scene7.com/is/image/visible/Visible_Plus_Monthly_Plan?$WEBP$",
+    "image_link": "https://totalwireless-ge4qawxpca-uc.a.run.app/assets/total5g.png",
     "price": {
-      "value": 35.0,
+      "value": 50.0,
       "currency": "USD"
     },
     "availability": "in_stock",
     "inventory_quantity": 1000000,
-    "seller_url": "https://www.visible.com/",
-    "return_policy": "https://www.visible.com/returns-policy/",
+    "seller_url": "https://www.totalwireless.com/",
+    "return_policy": "https://www.totalwireless.com/terms-and-conditions#return",
     "return_window": 0,
-    "seller_name": "Visible",
-    "brand": "Visible",
-    "mpn": "PLUS4VIS25WB",
+    "seller_name": "Total Wireless",
+    "brand": "Total Wireless",
+    "mpn": "PPLUS1VIS25WB",
     "condition": "new",
-    "seller_privacy_policy": "https://www.visible.com/legal/privacy",
-    "seller_tos": "https://www.visible.com/legal/terms-and-conditions",
+    "seller_privacy_policy": "https://www.verizon.com/about/privacy/",
+    "seller_tos": "https://www.totalwireless.com/terms-and-conditions",
     "color": null,
     "size": null,
     "sale_price": {
-      "value": 35.0,
+      "value": 50.0,
       "currency": "USD"
     }
-  },
-  {
-    "enable_search": "true",
-    "enable_checkout": "false",
-    "id": "PPLUS6VIS25WB",
-    "title": "Visible+ Pro (6M)",
-    "description": "Visible+ Pro 6 Months Plan - Unlimited Talk, Text, Data",
-    "link": "https://www.visible.com/shop/plan-selected?code=PPLUS6VIS25WB",
-    "product_category": "Electronics > Mobile Plans",
-    "material": "digital service",
-    "weight": {
-      "value": 0.0,
-      "unit": "lb"
-    },
-    "image_link": "https://visible.scene7.com/is/image/visible/Visible_Plus_Pro_6months_Plan?$WEBP$",
-    "price": {
-      "value": 270.0,
-      "currency": "USD"
-    },
-    "availability": "in_stock",
-    "inventory_quantity": 1000000,
-    "seller_url": "https://www.visible.com/",
-    "return_policy": "https://www.visible.com/returns-policy/",
-    "return_window": 0,
-    "seller_name": "Visible",
-    "brand": "Visible",
-    "mpn": "PPLUS6VIS25WB",
-    "condition": "new",
-    "seller_privacy_policy": "https://www.visible.com/legal/privacy",
-    "seller_tos": "https://www.visible.com/legal/terms-and-conditions",
-    "color": null,
-    "size": null,
-    "sale_price": {
-      "value": 135.0,
-      "currency": "USD"
-    }
-  },
-  {
-    "enable_search": "true",
-    "enable_checkout": "false",
-    "id": "PLUS4VIS25WBA",
-    "title": "Visible+ annual plan",
-    "description": "Visible+ Annual Plan - Unlimited Talk, Text, Data",
-    "link": "https://www.visible.com/shop/plan-selected?code=PLUS4VIS25WBA",
-    "product_category": "Electronics > Mobile Plans",
-    "material": "digital service",
-    "weight": {
-      "value": 0.0,
-      "unit": "lb"
-    },
-    "image_link": "https://visible.scene7.com/is/image/visible/Visible_Plus_Annual_Plan?$WEBP$",
-    "price": {
-      "value": 375.0,
-      "currency": "USD"
-    },
-    "availability": "in_stock",
-    "inventory_quantity": 1000000,
-    "seller_url": "https://www.visible.com/",
-    "return_policy": "https://www.visible.com/returns-policy/",
-    "return_window": 0,
-    "seller_name": "Visible",
-    "brand": "Visible",
-    "mpn": "PLUS4VIS25WBA",
-    "condition": "new",
-    "seller_privacy_policy": "https://www.visible.com/legal/privacy",
-    "seller_tos": "https://www.visible.com/legal/terms-and-conditions",
-    "color": null,
-    "size": null,
-    "sale_price": {
-      "value": 375.0,
-      "currency": "USD"
-    }
-  },
-  {
-    "enable_search": "true",
-    "enable_checkout": "false",
-    "id": "PPLUS1VIS25WBA",
-    "title": "Visible+ Pro annual plan",
-    "description": "Visible+ Pro Annual Plan - Unlimited Talk, Text, Data",
-    "link": "https://www.visible.com/shop/plan-selected?code=PPLUS1VIS25WBA",
-    "product_category": "Electronics > Mobile Plans",
-    "material": "digital service",
-    "weight": {
-      "value": 0.0,
-      "unit": "lb"
-    },
-    "image_link": "https://visible.scene7.com/is/image/visible/Visible_Plus_Pro_Annual_Plan?$WEBP$",
-    "price": {
-      "value": 450.0,
-      "currency": "USD"
-    },
-    "availability": "in_stock",
-    "inventory_quantity": 1000000,
-    "seller_url": "https://www.visible.com/",
-    "return_policy": "https://www.visible.com/returns-policy/",
-    "return_window": 0,
-    "seller_name": "Visible",
-    "brand": "Visible",
-    "mpn": "PPLUS1VIS25WBA",
-    "condition": "new",
-    "seller_privacy_policy": "https://www.visible.com/legal/privacy",
-    "seller_tos": "https://www.visible.com/legal/terms-and-conditions",
-    "color": null,
-    "size": null,
-    "sale_price": {
-      "value": 450.0,
-      "currency": "USD"
-    }
-  },
-  {
-    "enable_search": "true",
-    "enable_checkout": "false",
-    "id": "BASE3VISIBLE23A",
-    "title": "Visible Annual Plan",
-    "description": "Visible Annual Plan - Unlimited Talk, Text, Data",
-    "link": "https://www.visible.com/shop/plan-selected?code=BASE3VISIBLE23A",
-    "product_category": "Electronics > Mobile Plans",
-    "material": "digital service",
-    "weight": {
-      "value": 0.0,
-      "unit": "lb"
-    },
-    "image_link": "https://visible.scene7.com/is/image/visible/Visible_Annual_Plan?$WEBP$",
-    "price": {
-      "value": 275.0,
-      "currency": "USD"
-    },
-    "availability": "in_stock",
-    "inventory_quantity": 1000000,
-    "seller_url": "https://www.visible.com/",
-    "return_policy": "https://www.visible.com/returns-policy/",
-    "return_window": 0,
-    "seller_name": "Visible",
-    "brand": "Visible",
-    "mpn": "BASE3VISIBLE23A",
-    "condition": "new",
-    "seller_privacy_policy": "https://www.visible.com/legal/privacy",
-    "seller_tos": "https://www.visible.com/legal/terms-and-conditions",
-    "color": null,
-    "size": null,
-    "sale_price": {
-      "value": 275.0,
-      "currency": "USD"
-    }
-  }
+  } 
 ]
