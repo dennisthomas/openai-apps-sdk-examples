@@ -98,7 +98,7 @@ const widgets: VisibleWidget[] = [
     templateUri: "ui://widget/visible-plans.html",
     invoking: "Searching Visible plans",
     invoked: "Displayed Visible plans",
-    html: readWidgetHtml("visible-plans"),
+    html: readWidgetHtml("plans"),
     responseText: "Found matching Visible mobile plans!",
   },
   {
@@ -107,7 +107,7 @@ const widgets: VisibleWidget[] = [
     templateUri: "ui://widget/visible-devices.html",
     invoking: "Searching devices catalog",
     invoked: "Displayed matching devices",
-    html: readWidgetHtml("visible-devices"),
+    html: readWidgetHtml("devices"),
     responseText: "Found matching devices in the Visible catalog!",
   },
 ];
