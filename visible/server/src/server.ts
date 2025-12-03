@@ -123,13 +123,13 @@ widgets.forEach((widget) => {
 const DEVICES_DATA_PATH = path.resolve(
   ROOT_DIR,
   "src",
-  "visible-devices",
+  "devices",
   "devices.json"
 );
 const PLANS_DATA_PATH = path.resolve(
   ROOT_DIR,
   "src",
-  "visible-plans",
+  "plans",
   "plans.json"
 );
 
