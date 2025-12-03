@@ -1,0 +1,53 @@
+/* Mapbox GL CSS - imported from mapbox-gl/dist/mapbox-gl.css */
+/* Using Tailwind classes for layout - no custom container styles needed */
+
+.store-popup {
+  padding: 4px;
+  min-width: 250px;
+}
+
+.store-popup h3 {
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.store-popup a {
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 8px;
+}
+
+/* Mapbox popup styling */
+.mapboxgl-popup-content {
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.mapboxgl-popup-close-button {
+  font-size: 20px;
+  padding: 4px 8px;
+  color: #6b7280;
+}
+
+.mapboxgl-popup-close-button:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .store-locator-container {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .store-sidebar {
+    width: 100%;
+    max-height: 300px;
+  }
+
+  .map-container {
+    height: 400px;
+  }
+}
