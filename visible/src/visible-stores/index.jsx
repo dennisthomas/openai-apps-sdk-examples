@@ -1,3 +1,27 @@
+/**
+ * Visible Store Locator Widget
+ * 
+ * Interactive map displaying Total Wireless retail locations.
+ * Features Mapbox GL JS with custom markers and store details.
+ * 
+ * Features:
+ * - Interactive Mapbox map with custom red markers (#ee2000)
+ * - 38 store locations across USA
+ * - Store cards with address, phone, hours
+ * - Sidebar with scrollable store list
+ * - Automatic map bounds fitting
+ * - Click to select and highlight stores
+ * - Fullscreen mode toggle
+ * 
+ * Data: stores.json (38 stores with coordinates, address, phone, hours)
+ * Map Style: Mapbox Streets v12
+ * Coordinates: [longitude, latitude] format (Mapbox convention)
+ * 
+ * Props (from MCP server):
+ * - items: Filtered stores by city/state/zip
+ * - filters: Geographic filter values
+ */
+
 import React, { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -11,6 +35,7 @@ import { MapPin, Phone, Clock, Star, Maximize2 } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { AnimatePresence, motion } from "framer-motion";
 
+// Mapbox API access token
 mapboxgl.accessToken =
   "pk.eyJ1IjoiZXJpY25pbmciLCJhIjoiY21icXlubWM1MDRiczJvb2xwM2p0amNyayJ9.n-3O6JI5nOp_Lw96ZO5vJQ";
 

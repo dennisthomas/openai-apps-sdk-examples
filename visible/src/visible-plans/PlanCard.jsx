@@ -1,3 +1,25 @@
+/**
+ * Plan Card Component
+ * 
+ * Individual plan display card showing:
+ * - Plan image/icon
+ * - Plan title (e.g., "Visible Base", "Visible+")
+ * - Monthly price (calculated from annual if needed)
+ * - Data allowance
+ * - Key features with checkmarks
+ * - "View Details" button
+ * 
+ * Props:
+ * - plan: PlanRecord object with pricing and features
+ * 
+ * Pricing Display:
+ * - Annual plans show price/12 months
+ * - Monthly plans show direct price
+ * 
+ * Dimensions: 220px width, responsive on mobile (65vw)
+ * Brand color: Visible blue (#1800ff)
+ */
+
 import React from "react";
 import { Check } from "lucide-react";
 

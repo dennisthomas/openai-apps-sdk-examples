@@ -1,9 +1,35 @@
 #!/bin/bash
 
+###############################################################################
+# Visible Brand Deployment Script
+# 
+# Deploys the Visible MCP server to Google Cloud Run
+# 
+# Target: Manager's GCP Project (shining-courage-434003-h1)
+# Service: visible-final
+# Region: us-central1  
+# Endpoint: https://visible-final-ge4qawxpca-uc.a.run.app/mcp
+# 
+# Process:
+# 1. Validate prerequisites (gcloud, docker)
+# 2. Enable required GCP APIs
+# 3. Build Docker image for linux/amd64 (Cloud Run platform)
+# 4. Build frontend widgets with Vite
+# 5. Push image to Google Container Registry (gcr.io)
+# 6. Deploy to Cloud Run with environment variables
+# 7. Set IAM permissions for unauthenticated access
+# 8. Display service URL and MCP endpoint
+# 
+# Brand Styling: Blue theme (#1800ff)
+# Data: 1130+ devices, 7 plans, 38 stores
+# 
+# Usage: ./deploy-visible-karishma.sh
+###############################################################################
+
 # Deployment script for Visible Karishma branch to Manager's GCP (visible-final)
 # This deploys visible-karishma branch to shining-courage-434003-h1 project
 
-set -e
+set -e  # Exit on any error
 
 # Colors for output
 RED='\033[0;31m'

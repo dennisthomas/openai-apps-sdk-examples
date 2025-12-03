@@ -1,3 +1,22 @@
+/**
+ * Device Card Component
+ * 
+ * Individual device display card showing:
+ * - Product image with fallback emoji
+ * - Device title (brand + model)
+ * - Price (sale_price or regular price)
+ * - Color and storage size
+ * - Condition (new/refurbished)
+ * - Stock status
+ * - "View on Visible.com" button
+ * 
+ * Props:
+ * - device: DeviceRecord object with all product details
+ * 
+ * Dimensions: 220px width, responsive on mobile (65vw)
+ * Brand color: Visible blue (#1800ff)
+ */
+
 import React from "react";
 import { Star } from "lucide-react";
 
@@ -37,9 +56,9 @@ export default function DeviceCard({ device }) {
           <button
             type="button"
             onClick={() => window.open(device.link, '_blank')}
-            className="cursor-pointer inline-flex items-center rounded-full bg-[#ef0000] text-white px-4 py-1.5 text-sm font-medium hover:opacity-90 active:opacity-100"
+            className="cursor-pointer inline-flex items-center rounded-full bg-[#1800ff] text-white px-4 py-1.5 text-sm font-medium hover:opacity-90 active:opacity-100"
           >
-            View on TotalWireless.com
+            View on Visible.com
           </button>
         </div>
       </div>

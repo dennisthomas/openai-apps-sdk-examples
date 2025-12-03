@@ -1,3 +1,24 @@
+/**
+ * Visible Plans Widget
+ * 
+ * Interactive carousel for comparing mobile service plans.
+ * Displays filtered plans with pricing, features, and data allowances.
+ * 
+ * Features:
+ * - Horizontal carousel navigation
+ * - Plan comparison cards
+ * - Monthly/Annual billing options
+ * - Data allowance display
+ * - Feature highlights (hotspot, international)
+ * 
+ * Props (from MCP server):
+ * - items: Array of filtered plans
+ * - filters: Applied filter values (price range, billing term)
+ * - resultCount/totalCount: Filter statistics
+ * 
+ * Styling: Visible blue brand (#1800ff)
+ */
+
 import React from "react";
 import { createRoot } from "react-dom/client";
 import useEmblaCarousel from "embla-carousel-react";

@@ -1,3 +1,20 @@
+/**
+ * OpenAI Global Types
+ * 
+ * Type definitions for ChatGPT widget environment globals.
+ * These types define the interface between ChatGPT and custom widgets.
+ * 
+ * Key Interfaces:
+ * - OpenAiGlobals: Main context object available to all widgets
+ * - Theme: light/dark mode
+ * - DisplayMode: inline/fullscreen/panel layout modes  
+ * - SafeArea: Mobile-safe rendering boundaries
+ * - ToolInput/Output: Data flow between ChatGPT and widgets
+ * - WidgetState: Persistent widget state storage
+ * 
+ * Usage: Access via window.openai global object in widget code
+ */
+
 export type OpenAiGlobals<
   ToolInput = UnknownObject,
   ToolOutput = UnknownObject,

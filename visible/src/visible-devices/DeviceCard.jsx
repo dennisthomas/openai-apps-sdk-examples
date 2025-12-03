@@ -1,3 +1,22 @@
+/**
+ * Device Card Component
+ * 
+ * Individual device display card showing:
+ * - Product image with fallback emoji
+ * - Device title (brand + model)
+ * - Price (sale_price or regular price)
+ * - Color and storage size
+ * - Condition (new/refurbished)
+ * - Stock status
+ * - "View on Visible.com" button
+ * 
+ * Props:
+ * - device: DeviceRecord object with all product details
+ * 
+ * Dimensions: 220px width, responsive on mobile (65vw)
+ * Brand color: Visible blue (#1800ff)
+ */
+
 import React from "react";
 import { Star } from "lucide-react";
 

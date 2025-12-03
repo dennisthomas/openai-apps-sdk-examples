@@ -1,3 +1,20 @@
+/**
+ * useWidgetState Hook
+ * 
+ * Manages persistent widget state across ChatGPT sessions.
+ * Similar to useState but state is preserved when widget unmounts/remounts.
+ * 
+ * Usage:
+ *   const [state, setState] = useWidgetState<{ selectedStore: string }>();
+ *   setState({ selectedStore: 'store-123' }); // Persists across widget lifecycle
+ * 
+ * State is stored in ChatGPT's widget state management system.
+ * Useful for: selected items, scroll position, expanded panels, user preferences.
+ * 
+ * @param defaultState - Initial state if no persisted state exists
+ * @returns [currentState, setStateFunction] tuple (like useState)
+ */
+
 import { useCallback, useEffect, useState, type SetStateAction } from "react";
 import { useOpenAiGlobal } from "./use-openai-global";
 import type { UnknownObject } from "./types";

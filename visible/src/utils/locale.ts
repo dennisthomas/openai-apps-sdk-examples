@@ -1,3 +1,17 @@
+/**
+ * Locale Resolution Utility
+ * 
+ * Determines user's preferred language from document.documentElement.lang
+ * Falls back to en-US if language not found in available messages.
+ * 
+ * Used for internationalization (i18n) in widgets.
+ * Currently all content is English, but infrastructure supports multiple languages.
+ * 
+ * Usage:
+ *   const messages = { 'en-US': {...}, 'es-ES': {...} };
+ *   const locale = resolveLocale(messages); // Returns 'en-US' or 'es-ES'
+ */
+
 const DEFAULT_LOCALE = "en-US" as const;
 
 function hasOwn<T extends Record<string, unknown>>(

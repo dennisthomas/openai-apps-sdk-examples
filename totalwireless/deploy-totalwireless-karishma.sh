@@ -1,9 +1,35 @@
 #!/bin/bash
 
+###############################################################################
+# Total Wireless Brand Deployment Script
+# 
+# Deploys the Total Wireless MCP server to Google Cloud Run
+# 
+# Target: Manager's GCP Project (shining-courage-434003-h1)
+# Service: totalwireless
+# Region: us-central1  
+# Endpoint: https://totalwireless-ge4qawxpca-uc.a.run.app/mcp
+# 
+# Process:
+# 1. Validate prerequisites (gcloud, docker)
+# 2. Enable required GCP APIs
+# 3. Build Docker image for linux/amd64 (Cloud Run platform)
+# 4. Build frontend widgets with Vite
+# 5. Push image to Google Container Registry (gcr.io)
+# 6. Deploy to Cloud Run with environment variables
+# 7. Set IAM permissions for unauthenticated access
+# 8. Display service URL and MCP endpoint
+# 
+# Brand Styling: Red theme (#ee2000)
+# Data: 1130+ devices, 7 plans, 38 stores
+# 
+# Usage: ./deploy-totalwireless-karishma.sh
+###############################################################################
+
 # Deployment script for Total Wireless Karishma branch to Manager's GCP (totalwireless)
 # This deploys totalwireless-karishma branch to shining-courage-434003-h1 project
 
-set -e
+set -e  # Exit on any error
 
 # Colors for output
 RED='\033[0;31m'

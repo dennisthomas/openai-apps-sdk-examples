@@ -1,3 +1,26 @@
+/**
+ * Visible Devices Widget
+ * 
+ * Interactive carousel for browsing filtered device catalog (phones, accessories).
+ * Displays up to 10 devices with images, prices, specs, and purchase links.
+ * 
+ * Features:
+ * - Horizontal carousel with touch/drag support (Embla Carousel)
+ * - Previous/Next navigation buttons
+ * - Responsive design (mobile-first)
+ * - Loading states
+ * - Filter summary display
+ * - Deep linking to Visible.com product pages
+ * 
+ * Props (from MCP server via structuredContent):
+ * - items: Array of filtered devices
+ * - filters: Applied filter values
+ * - resultCount: Number of filtered results
+ * - totalCount: Total devices in catalog
+ * 
+ * Styling: Visible blue brand (#1800ff)
+ */
+
 import React from "react";
 import { createRoot } from "react-dom/client";
 import useEmblaCarousel from "embla-carousel-react";

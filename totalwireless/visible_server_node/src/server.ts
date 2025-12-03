@@ -1,3 +1,28 @@
+/**
+ * Visible MCP Server
+ * 
+ * This is the main Model Context Protocol (MCP) server for Visible brand.
+ * It provides three interactive tools for ChatGPT to search and display:
+ * 1. Device catalog (find_devices) - 1130+ phones and accessories
+ * 2. Plan comparison (find_plans) - Mobile service plans with pricing
+ * 3. Store locator (find_stores) - 38 retail locations with interactive maps
+ * 
+ * The server implements the MCP protocol to enable ChatGPT to:
+ * - Filter devices by brand, price, color, size, condition, availability
+ * - Support multi-value filters (e.g., "blue or pink", "128GB and 256GB")
+ * - Handle user selections (exactPrice, selectIndex, limit parameters)
+ * - Sort results by price (cheapest/most expensive first)
+ * - Render interactive React widgets with carousel navigation
+ * 
+ * Architecture:
+ * - HTTP server with SSE (Server-Sent Events) transport for real-time updates
+ * - JSON data files for devices, plans, and stores
+ * - Pre-built HTML/JS/CSS widget bundles served from /assets
+ * - Zod schema validation for type-safe tool inputs
+ * 
+ * Deployment: Google Cloud Run (https://visible-final-ge4qawxpca-uc.a.run.app/mcp)
+ */
+
 import {
   createServer,
   type IncomingMessage,
@@ -26,20 +51,27 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 
+// Widget definition type - represents an interactive UI component
 type VisibleWidget = {
-  id: string;
-  title: string;
-  templateUri: string;
-  invoking: string;
-  invoked: string;
-  html: string;
-  responseText: string;
+  id: string;           // Unique identifier (e.g., "visible-devices")
+  title: string;        // Human-readable name
+  templateUri: string;  // Resource URI for widget HTML
+  invoking: string;     // Message shown while loading
+  invoked: string;      // Message shown after loaded
+  html: string;         // Pre-built HTML/JS/CSS bundle
+  responseText: string; // Text response to ChatGPT
 };
 
+// Resolve directory paths for loading assets and data files
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.resolve(__dirname, "..", "..");
-const ASSETS_DIR = path.resolve(ROOT_DIR, "assets");
+const ROOT_DIR = path.resolve(__dirname, "..", "..");  // Project root
+const ASSETS_DIR = path.resolve(ROOT_DIR, "assets");    // Built widget files
 
+/**
+ * Load pre-built widget HTML from /assets directory
+ * Widgets are compiled by Vite during build process (pnpm run build)
+ * Files are named like: visible-devices-2d2b.html (with hash for cache busting)
+ */
 function readWidgetHtml(componentName: string): string {
   if (!fs.existsSync(ASSETS_DIR)) {
     throw new Error(
@@ -74,6 +106,7 @@ function readWidgetHtml(componentName: string): string {
   return htmlContents;
 }
 
+// Generate metadata for widget registration with MCP protocol
 function widgetDescriptorMeta(widget: VisibleWidget) {
   return {
     "openai/outputTemplate": widget.templateUri,
@@ -84,6 +117,7 @@ function widgetDescriptorMeta(widget: VisibleWidget) {
   } as const;
 }
 
+// Generate metadata for tool invocation status updates
 function widgetInvocationMeta(widget: VisibleWidget) {
   return {
     "openai/toolInvocation/invoking": widget.invoking,
@@ -91,6 +125,7 @@ function widgetInvocationMeta(widget: VisibleWidget) {
   } as const;
 }
 
+// Register all available widgets (tools) that can be invoked by ChatGPT
 const widgets: VisibleWidget[] = [
   {
     id: "visible-plans",
@@ -110,17 +145,9 @@ const widgets: VisibleWidget[] = [
     html: readWidgetHtml("visible-devices"),
     responseText: "Found matching devices in the Visible catalog!",
   },
-  {
-    id: "visible-stores",
-    title: "Find Total Wireless Stores",
-    templateUri: "ui://widget/visible-stores.html",
-    invoking: "Finding nearby stores",
-    invoked: "Displayed store locations",
-    html: readWidgetHtml("visible-stores"),
-    responseText: "Found Total Wireless store locations!",
-  },
 ];
 
+// Create lookup maps for fast widget retrieval by ID or URI
 const widgetsById = new Map<string, VisibleWidget>();
 const widgetsByUri = new Map<string, VisibleWidget>();
 
@@ -129,23 +156,18 @@ widgets.forEach((widget) => {
   widgetsByUri.set(widget.templateUri, widget);
 });
 
+// Data file paths for device and plan catalogs
 const DEVICES_DATA_PATH = path.resolve(
   ROOT_DIR,
   "src",
   "visible-devices",
-  "total_wireless_iphones.json"
+  "devices.json"
 );
 const PLANS_DATA_PATH = path.resolve(
   ROOT_DIR,
   "src",
   "visible-plans",
-  "total_wireless_plans.json"
-);
-const STORES_DATA_PATH = path.resolve(
-  ROOT_DIR,
-  "src",
-  "visible-stores",
-  "stores.json"
+  "plans.json"
 );
 
 type PriceField = {
@@ -153,6 +175,8 @@ type PriceField = {
   currency?: string;
 };
 
+// Device catalog record structure
+// Each device has brand, model, price, color, size, condition, availability
 type DeviceRecord = {
   id: string;
   title: string;
@@ -169,6 +193,8 @@ type DeviceRecord = {
   [key: string]: unknown;
 };
 
+// Mobile plan record structure
+// Each plan has title, description, price, features, billing term
 type PlanRecord = {
   id: string;
   title: string;
@@ -179,19 +205,7 @@ type PlanRecord = {
   [key: string]: unknown;
 };
 
-type StoreRecord = {
-  id: string;
-  name: string;
-  coords: [number, number];
-  address: string;
-  city: string;
-  state: string;
-  zip: string;
-  phone: string;
-  hours: string;
-  [key: string]: unknown;
-};
-
+// Load and parse JSON data files (devices.json, plans.json)
 function loadJsonFile<T>(filePath: string): T[] {
   try {
     const raw = fs.readFileSync(filePath, "utf8");
@@ -202,19 +216,26 @@ function loadJsonFile<T>(filePath: string): T[] {
   }
 }
 
+// Load catalogs at server startup (1130+ devices, 7 plans)
 const devicesCatalog = loadJsonFile<DeviceRecord>(DEVICES_DATA_PATH);
 const plansCatalog = loadJsonFile<PlanRecord>(PLANS_DATA_PATH);
-const storesCatalog = ((): StoreRecord[] => {
-  try {
-    const raw = fs.readFileSync(STORES_DATA_PATH, "utf8");
-    const data = JSON.parse(raw) as { stores: StoreRecord[] };
-    return data.stores || [];
-  } catch (error) {
-    console.error(`Failed to load stores catalog`, error);
-    return [];
-  }
-})();
 
+/**
+ * Tool Input Schema - Defines all parameters ChatGPT can use
+ * 
+ * Key Features:
+ * - Multi-value filters: color, size, condition support "or"/"and" separators
+ * - Price filters: minPrice, maxPrice (budget), exactPrice (selection)
+ * - Selection parameters: limit (# results), selectIndex (position), sortBy (price)
+ * - Query: Text search across title, description, brand
+ * - Availability: in_stock or out_of_stock
+ * 
+ * Usage Examples:
+ * - "blue or pink iPhone" → color: "blue or pink", query: "iPhone"
+ * - "under $500" → maxPrice: 500
+ * - "I'll take the first one" → selectIndex: 0, limit: 1
+ * - "cheapest iPhone" → query: "iPhone", sortBy: "price_low", selectIndex: 0, limit: 1
+ */
 const toolInputSchema = {
   type: "object",
   properties: {
@@ -580,53 +601,16 @@ function filterPlans(plans: PlanRecord[], filters: ToolInput) {
   });
 }
 
-const storeInputSchema = {
-  type: "object",
-  properties: {
-    city: {
-      type: "string",
-      description: "City name to search for stores (e.g. 'Dallas', 'Plano', 'Fort Worth').",
-    },
-    state: {
-      type: "string",
-      description: "State abbreviation to filter stores (e.g. 'TX', 'CA').",
-    },
-    zip: {
-      type: "string",
-      description: "ZIP code to find stores in a specific area.",
-    },
-  },
-  additionalProperties: false,
-} as const;
-
-const storeInputParser = z.object({
-  city: z.string().optional(),
-  state: z.string().optional(),
-  zip: z.string().optional(),
-});
-
 const tools: Tool[] = widgets.map((widget) => {
   const isPlans = widget.id === "visible-plans";
-  const isStores = widget.id === "visible-stores";
-  
-  let description: string;
-  let schema: typeof toolInputSchema | typeof storeInputSchema;
-  
-  if (isStores) {
-    description = "Find Total Wireless store locations by city, state, or ZIP code. Shows stores on an interactive map with addresses, phone numbers, and hours.";
-    schema = storeInputSchema;
-  } else if (isPlans) {
-    description = "Search and filter Visible mobile plans by price range, billing term, or text query. Returns matching plans with pricing and features.";
-    schema = toolInputSchema;
-  } else {
-    description = "Search and filter Visible devices (phones, accessories) by brand, price range, availability, category, or text query. Returns matching devices with prices and details.";
-    schema = toolInputSchema;
-  }
+  const description = isPlans
+    ? "Search and filter Visible mobile plans by price range, billing term, or text query. Returns matching plans with pricing and features."
+    : "Search and filter Visible devices (phones, accessories) by brand, price range, availability, category, or text query. Returns matching devices with prices and details.";
   
   return {
     name: widget.id,
     description,
-    inputSchema: schema,
+    inputSchema: toolInputSchema,
     title: widget.title,
     _meta: widgetDescriptorMeta(widget),
     // To disable the approval prompt for the widgets
@@ -720,51 +704,6 @@ function createVisibleServer(): Server {
         throw new Error(`Unknown tool: ${request.params.name}`);
       }
 
-      // Handle store locator separately
-      if (widget.id === "visible-stores") {
-        const storeArgs = storeInputParser.parse(request.params.arguments ?? {});
-        
-        console.log("=== Store Locator Tool Called ===");
-        console.log("Arguments:", JSON.stringify(storeArgs, null, 2));
-        
-        // Filter stores based on location
-        const filteredStores = storesCatalog.filter((store) => {
-          if (storeArgs.city && store.city.toLowerCase() !== storeArgs.city.toLowerCase()) {
-            return false;
-          }
-          if (storeArgs.state && store.state.toLowerCase() !== storeArgs.state.toLowerCase()) {
-            return false;
-          }
-          if (storeArgs.zip && store.zip !== storeArgs.zip) {
-            return false;
-          }
-          return true;
-        });
-        
-        console.log(`Found ${filteredStores.length} stores`);
-        
-        return {
-          content: [
-            {
-              type: "text",
-              text: widget.responseText,
-            },
-          ],
-          structuredContent: {
-            stores: filteredStores,
-            location: {
-              city: storeArgs.city || null,
-              state: storeArgs.state || null,
-              zip: storeArgs.zip || null,
-            },
-            resultCount: filteredStores.length,
-            totalCount: storesCatalog.length,
-          },
-          _meta: widgetInvocationMeta(widget),
-        };
-      }
-
-      // Handle devices and plans
       const args = toolInputParser.parse(request.params.arguments ?? {});
 
       // Debug logging
