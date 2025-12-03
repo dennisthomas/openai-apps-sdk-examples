@@ -81,7 +81,7 @@ echo -e "${YELLOW}Building Docker image for linux/amd64 platform...${NC}"
 echo -e "${YELLOW}BASE_URL set to: $BASE_URL/assets${NC}"
 docker build --platform linux/amd64 \
   --build-arg BASE_URL="$BASE_URL/assets" \
-  -f Dockerfile.visible \
+  -f Dockerfile.main \
   -t $IMAGE_NAME:latest \
   -t $IMAGE_NAME:$(date +%Y%m%d-%H%M%S) .
 

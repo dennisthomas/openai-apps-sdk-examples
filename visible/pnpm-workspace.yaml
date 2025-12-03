@@ -1,3 +1,2 @@
 packages:
-  - pizzaz_server_node
-  - visible_server_node
+  - server
