@@ -39,3 +39,27 @@ pnpm run build
 ```
 
 This will generate the HTML files in the `assets/` directory.
+
+## Deployment
+
+This server is configured to deploy to Google Cloud Run. Use the deployment script:
+
+```bash
+./deploy-visible.sh
+```
+
+The deployment script will:
+- Build the Docker image using `Dockerfile.main`
+- Push to Google Container Registry
+- Deploy to Cloud Run service `visible-final`
+
+## Environment Variables
+
+- `PORT`: Server port (default: 8001)
+- `BASE_URL`: Base URL for widget assets (set during Docker build)
+
+## Data Files
+
+The server uses the following data catalogs:
+- `src/devices/devices.json`: Device catalog with pricing and specifications
+- `src/plans/plans.json`: Mobile plan offerings
