@@ -80,6 +80,7 @@ fi
 echo -e "${YELLOW}Building Docker image for linux/amd64 platform...${NC}"
 echo -e "${YELLOW}BASE_URL set to: $BASE_URL/assets${NC}"
 docker build --platform linux/amd64 \
+  --no-cache \
   --build-arg BASE_URL="$BASE_URL/assets" \
   -f Dockerfile.main \
   -t $IMAGE_NAME:latest \
