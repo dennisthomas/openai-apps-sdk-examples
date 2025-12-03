@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Deployment script for Total Wireless Karishma branch to Manager's GCP (totalwireless)
-# This deploys totalwireless-karishma branch to shining-courage-434003-h1 project
+# Deployment script for Total Wireless 
+# This deploys totalwireless folder to GCP project
 
 set -e
 
@@ -11,25 +11,25 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Configuration - FIXED for manager's project
+# Configuration
 PROJECT_ID="shining-courage-434003-h1"
 SERVICE_NAME="totalwireless"
 REGION="us-central1"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME"
 
-# Set manager's environment
+# Set environment
 export GCP_PROJECT_ID="$PROJECT_ID"
 export PATH=/opt/homebrew/share/google-cloud-sdk/bin:"$PATH"
 
 echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║  Deploying Total Wireless Karishma to Manager's GCP       ║${NC}"
+echo -e "${GREEN}║  Deploying Total Wireless to GCP       ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo "Project ID: $PROJECT_ID (Manager's)"
+echo "Project ID: $PROJECT_ID"
 echo "Region: $REGION"
 echo "Service Name: $SERVICE_NAME"
 echo "Image: $IMAGE_NAME"
-echo "Branch: totalwireless-karishma (from manager's repo)"
+echo "Branch: final - totalwireless folder"
 echo ""
 
 # Check if gcloud is installed
@@ -47,7 +47,7 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # Set the project
-echo -e "${YELLOW}Setting GCP project to manager's project...${NC}"
+echo -e "${YELLOW}Setting GCP project...${NC}"
 gcloud config set project $PROJECT_ID
 
 # Enable required APIs
