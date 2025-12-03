@@ -375,7 +375,7 @@ export default function App() {
   );
 }
 
-const container = document.getElementById("visible-stores-root");
+const container = document.getElementById("stores-root");
 if (!container) throw new Error("Root element not found");
 const root = createRoot(container);
 root.render(<App />);

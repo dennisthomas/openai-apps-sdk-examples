@@ -161,7 +161,7 @@ function App() {
   );
 }
 
-const container = document.getElementById("visible-devices-root");
+const container = document.getElementById("devices-root");
 if (!container) throw new Error("Root element not found");
 const root = createRoot(container);
 root.render(<App />);
