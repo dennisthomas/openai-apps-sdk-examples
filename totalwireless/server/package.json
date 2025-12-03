@@ -1,9 +1,9 @@
 {
-  "name": "visible-mcp-node",
+  "name": "totalwireless-mcp-node",
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "description": "MCP server that exposes Visible plans and devices catalog using the official TypeScript SDK.",
+  "description": "MCP server that exposes Total Wireless plans and devices catalog using the official TypeScript SDK.",
   "scripts": {
     "start": "tsx src/server.ts"
   },
