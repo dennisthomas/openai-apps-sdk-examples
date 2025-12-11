@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 PROJECT_ID="shining-courage-434003-h1"
-SERVICE_NAME="totalwireless"
+SERVICE_NAME="combined-tw"
 REGION="us-central1"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME"
 

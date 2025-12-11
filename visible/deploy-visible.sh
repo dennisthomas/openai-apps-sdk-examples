@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Deployment script for Visible folder in final branch to GCP (visible-final)
+# Deployment script for Visible folder in final branch to GCP (combined-visible)
 # This deploys visible folder in final branch to shining-courage-434003-h1 project
 
 set -e
@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 
 # Configuration -
 PROJECT_ID="shining-courage-434003-h1"
-SERVICE_NAME="visible-final"
+SERVICE_NAME="combined-visible"
 REGION="us-central1"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME"
 
